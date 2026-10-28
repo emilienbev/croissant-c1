@@ -13,7 +13,19 @@
 Croissant replaces the R1's software with a LineageOS 20 GSI rooted with Magisk, `tailscaled` on the stock kernel, and one Kotlin/Compose app that is the whole device (Device Owner, home screen, lock task). Hold the side button and talk: your words are heard by Whisper on your own machine or by a cloud speech model, and Ask's model answers as text from the C1, on Ollama on your own machine or a cloud provider with your own key.
 
 <p align="center">
-  <img alt="The features round the scroll wheel: ask, recorder, reminders, timers, camera, calendar, weather, photos, metronome, translator, agents, atelier and settings" src="docs/images/glyphs.png" width="420">
+  <a href="docs/features/ask.md"><img alt="Ask" src="docs/images/glyphs/ask.png" height="28"></a><a
+  href="docs/features/recorder.md"><img alt="Recorder" src="docs/images/glyphs/recorder.png" height="28"></a><a
+  href="docs/features/reminders.md"><img alt="Reminders" src="docs/images/glyphs/reminders.png" height="28"></a><a
+  href="docs/features/timers.md"><img alt="Timers" src="docs/images/glyphs/timers.png" height="28"></a><a
+  href="docs/features/camera.md"><img alt="Camera" src="docs/images/glyphs/camera.png" height="28"></a><a
+  href="docs/features/calendar.md"><img alt="Calendar" src="docs/images/glyphs/calendar.png" height="28"></a><a
+  href="docs/features/weather.md"><img alt="Weather" src="docs/images/glyphs/weather.png" height="28"></a><a
+  href="docs/features/photos.md"><img alt="Photos" src="docs/images/glyphs/photos.png" height="28"></a><a
+  href="docs/features/metronome.md"><img alt="Metronome" src="docs/images/glyphs/metronome.png" height="28"></a><a
+  href="docs/features/translator.md"><img alt="Translator" src="docs/images/glyphs/translator.png" height="28"></a><a
+  href="docs/features/agents.md"><img alt="Agents" src="docs/images/glyphs/agents.png" height="28"></a><a
+  href="docs/features/atelier.md"><img alt="Atelier" src="docs/images/glyphs/atelier.png" height="28"></a><a
+  href="docs/features/settings.md"><img alt="Settings" src="docs/images/glyphs/settings.png" height="28"></a>
 </p>
 
 ## What you need
