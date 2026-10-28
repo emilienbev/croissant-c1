@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Draws docs/images/glyphs.png, the README's row of the features round the scroll wheel:
-one disc a place, in Beam's order, each in its hue with its glyph in black.
+Draws docs/images/glyphs/, the README's row of the features round the scroll wheel: one
+disc a place, in Beam's order, each in its hue with its glyph in black. Each place is its
+own image, named for it, so the README can link each glyph to its page. Each carries half
+the gap on both sides, so the images set side by side read as one row.
 
     uv run --with pillow python scripts/glyphs.py
 
@@ -12,7 +14,8 @@ them (a glyph box the disc's radius, 2-unit round strokes on the 24-unit grid).
 
 It writes an SVG into a temporary folder and shoots it with headless Chrome, which a Mac
 with Chrome or Playwright already has; `CHROME=/path/to/it` names another. With any other
-rasteriser at hand, convert that SVG instead. Pillow trims the shot to the row.
+rasteriser at hand, convert that SVG instead. Pillow trims the shot to the row and cuts it
+into the places.
 """
 
 from __future__ import annotations
@@ -27,7 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 UI = ROOT / "android/app/src/main/java/com/bleural/croissant/ui"
-OUT = ROOT / "docs/images/glyphs.png"
+OUT = ROOT / "docs/images/glyphs"
 
 # The row as the wheel has it, at twice the README's own size so it stays crisp.
 SCALE = 2
@@ -210,8 +213,8 @@ def chrome() -> str:
     raise SystemExit("no headless Chrome here: install one, or name it with CHROME=/path/to/it")
 
 
-def shoot(source: str, to: Path) -> None:
-    """The SVG as a PNG, on nothing, trimmed to the row."""
+def shoot(source: str, row: list[str], to: Path) -> None:
+    """The SVG as a PNG, on nothing, trimmed to the row and cut into one image a place."""
     from PIL import Image
 
     work = Path(tempfile.mkdtemp(prefix="croissant-glyphs-"))
@@ -224,15 +227,24 @@ def shoot(source: str, to: Path) -> None:
         check=True, capture_output=True,
     )
     image = Image.open(shot).convert("RGBA")
-    image.crop(image.getbbox()).save(to)
-    print(f"{to.relative_to(ROOT)}: {Image.open(to).size[0]}x{Image.open(to).size[1]}, {to.stat().st_size // 1024} kB")
+    strip = image.crop(image.getbbox())
+    expected = len(row) * DISC + (len(row) - 1) * GAP
+    if strip.size != (expected, DISC):
+        raise SystemExit(f"the row came out {strip.size[0]}x{strip.size[1]}, not {expected}x{DISC}: {shot}")
+    to.mkdir(parents=True, exist_ok=True)
+    for i, f in enumerate(row):
+        cell = Image.new("RGBA", (DISC + GAP, DISC), (0, 0, 0, 0))
+        x = i * (DISC + GAP)
+        cell.paste(strip.crop((x, 0, x + DISC, DISC)), (GAP // 2, 0))
+        cell.save(to / f"{f.lower()}.png", optimize=True)
+    print(f"{to.relative_to(ROOT)}/: {len(row)} images, {DISC + GAP}x{DISC} each")
     print(f"the svg it came from: {page_file}")
 
 
 def main() -> int:
     row = places()
     print("the row: " + ", ".join(f.lower() for f in row))
-    shoot(svg(), OUT)
+    shoot(svg(), row, OUT)
     return 0
 
 
