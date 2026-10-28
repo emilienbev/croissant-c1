@@ -1,0 +1,11 @@
+# gitleaks' own rules, plus the fake values the unit tests use. They are written to
+# look real because the code checks a key's shape.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fake keys and fixture tokens in the unit tests"
+regexes = [
+  '''AIzaSyD-fake-[0-9A-Za-z_-]+''',
+  '''CgVnZW1\+aW5p/LTI=''',
+]
