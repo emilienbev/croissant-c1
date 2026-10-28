@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Identical to AOSP frameworks/native/data/etc/android.software.device_admin.xml.
+  The R1's vendor image does not declare this feature, and DevicePolicyManagerService
+  refuses to set a Device Owner without it ("device does not have the
+  android.software.device_admin feature"). Overlaid by Magisk (magic mount) from
+  device/magisk/croissant-device-admin/ in the repo.
+-->
+<permissions>
+    <feature name="android.software.device_admin" />
+</permissions>

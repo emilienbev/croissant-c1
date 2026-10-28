@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="118 192 244 306" fill="none">
+<title>Croissant kamado</title>
+<defs><mask id="silhouette" maskUnits="userSpaceOnUse" x="118" y="192" width="244" height="306">
+<g fill="white" stroke="black" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"><g id="mascot" stroke="none" stroke-width="12" paint-order="stroke fill">
+    <!-- One 6 px visible gap everywhere: 12 px centered strokes are painted
+         before the orange fill, which covers their inner half. -->
+    <!-- The bowl extends behind the lid so a true offset stroke defines the
+         seam, rather than two vertically shifted ellipses that pinch at the sides. -->
+    <path id="body" d="M132,320 L348,320
+      L347,346 Q347,351 344,356
+      C342,401 330,443 316,463
+      C303,485 177,485 164,463
+      C150,443 138,401 136,356
+      Q133,351 133,346 Z"></path>
+
+    <!-- The lid covers the upper half of this stroke, exposing a uniform 6 px
+         separator measured perpendicular to the curved edge. -->
+    <path id="lid-seam" d="M130,320 A110,54 0 0 0 350,320" fill="none" stroke="black"></path>
+
+    <!-- A full, rounded dome seen from above. The elliptical front edge is
+         deliberately deeper than the previous front-view silhouette. -->
+    <path id="dome" d="M240,239
+      C196,239 157,263 143,299
+      C140,307 132,311 130,320
+      A110,54 0 0 0 350,320
+      C348,311 340,307 337,299
+      C323,263 284,239 240,239 Z"></path>
+
+    <!-- Short exhaust cylinder, with a slight foot and visible oval top.
+         Only the lower perimeter is outlined, matching the orange reference. -->
+    <path id="exhaust" stroke="black" d="M210,239 L210,252 L207,257
+      C207,277 273,277 273,257
+      L270,252 L270,239
+      C270,219 210,219 210,239 Z"></path>
+  </g></g>
+</mask></defs>
+<path fill="#FF4F00" d="M118 192H362V498H118Z" mask="url(#silhouette)"/>
+</svg>

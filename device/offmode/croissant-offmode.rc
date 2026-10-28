@@ -1,0 +1,14 @@
+# Magisk overlay.d: appended to init.rc by magiskinit, ${MAGISKTMP} replaced with its tmpfs,
+# where overlay.d/sbin/croissant-offmode.sh is copied. Puts LK's off-mode-charge back to 0 as soon
+# as charge-only mode starts (the app set it to 1 for a Power off with the charger in), and
+# on every normal boot. See croissant-offmode.sh. And our charge-only screen over Lineage's, at
+# `on init` so it is in place before `on charger` starts the charger (croissant-chgres.sh).
+
+on init
+    exec u:r:magisk:s0 root root -- /system/bin/sh ${MAGISKTMP}/croissant-chgres.sh
+
+on charger
+    exec u:r:magisk:s0 root root -- /system/bin/sh ${MAGISKTMP}/croissant-offmode.sh 0
+
+on boot
+    exec_background u:r:magisk:s0 root root -- /system/bin/sh ${MAGISKTMP}/croissant-offmode.sh 0

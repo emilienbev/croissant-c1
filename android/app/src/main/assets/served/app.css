@@ -1,0 +1,385 @@
+/* The page the C1 serves to a phone: Beam's black, the Settings hue, a system font in
+   Power Grotesk's place. Sizes in CSS px: nothing under 15, fields at 17 so a phone does
+   not zoom in on them. */
+
+:root {
+  color-scheme: dark;
+  --bg: #000000;
+  --card: #161618;
+  --field: #1E1E21;
+  --line: #3A3A3E;
+  --ink: #F2F2F3;
+  --sub: #8C8C8C;
+  --hue: #FFA41B;
+  --danger: #FF3B30;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 17px/1.35 var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+
+[hidden] { display: none !important; }
+
+button, input, textarea { font: inherit; color: inherit; }
+
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+
+:focus-visible { outline: 2px solid var(--hue); outline-offset: 2px; }
+
+/* One column, a 16 px gutter; as tall as the screen so the prompt's field can fill it. */
+.page {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 0 max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.view {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- the header: the three parts, the one shown in the hue and underlined ---- */
+
+.tabs {
+  display: flex;
+  gap: 26px;
+  padding-top: calc(8px + env(safe-area-inset-top));
+}
+
+.tabs button {
+  position: relative;
+  min-height: 48px;
+  padding: 12px 0 8px;
+  border: 0;
+  background: none;
+  color: var(--sub);
+  font-size: 19px;
+}
+
+.tabs button[aria-selected="true"] {
+  color: var(--hue);
+  font-weight: 500;
+}
+
+.tabs button[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 3px;
+  border-radius: 1.5px;
+  background: var(--hue);
+}
+
+/* ---- words ---- */
+
+h1, h2 {
+  margin: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+h1 { font-size: 26px; line-height: 1.2; margin-top: 6px; }
+h2 { font-size: 22px; line-height: 1.2; }
+
+.lede, .sub, .note, .hint, label, .label {
+  font-size: 15px;
+  color: var(--sub);
+  overflow-wrap: anywhere;
+}
+
+.lede { margin: 18px 0 16px; }
+.sub { margin: 8px 0 0; }
+.big-sub { font-size: 17px; margin: 8px 0 0; color: var(--sub); }
+.hint { margin: 6px 0 0; }
+.hint.hue, .hue { color: var(--hue); }
+.bad { color: var(--danger); }
+
+/* A warning above every part while the page is on plain wi-fi. */
+.warn {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.warn strong {
+  display: block;
+  color: var(--hue);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+/* ---- buttons ---- */
+
+.btn {
+  min-height: 46px;
+  min-width: 120px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--field);
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.btn.accent {
+  background: var(--hue);
+  color: var(--bg);
+  font-weight: 500;
+}
+
+.btn.sure {
+  background: var(--danger);
+  color: var(--bg);
+  font-weight: 500;
+}
+
+.btn.wide { width: 100%; }
+.btn.choose { min-width: 160px; }
+
+.btn:disabled { opacity: .4; }
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* A quiet word that acts: rename, delete, show. */
+.quiet {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--sub);
+  font-size: 15px;
+}
+
+.quiet.sure { color: var(--danger); }
+
+.back {
+  align-self: flex-start;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sub);
+  font-size: 17px;
+}
+
+/* ---- providers ---- */
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 88px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  text-align: left;
+}
+
+.card.row { min-height: 56px; }
+
+.rows { margin-top: 16px; }
+
+.card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-name { font-size: 18px; overflow-wrap: anywhere; }
+.card-line { font-size: 15px; color: var(--sub); overflow-wrap: anywhere; }
+.card-line.hue { color: var(--hue); }
+
+.chev { flex: none; color: var(--sub); }
+
+.form { display: flex; flex-direction: column; }
+
+.form label, .label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 6px;
+}
+
+.field {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: var(--field);
+  color: var(--ink);
+  font-size: 17px;
+  caret-color: var(--hue);
+}
+
+.field:focus, .text:focus {
+  outline: none;
+  border-color: var(--hue);
+}
+
+.field::placeholder, .text::placeholder { color: var(--sub); opacity: 1; }
+
+.keyfield { position: relative; }
+.keyfield .field { padding-right: 76px; }
+
+.keyfield .quiet {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  min-width: 60px;
+  min-height: 44px;
+}
+
+/* What a test found: the tick and the words, or what the provider said. */
+.result {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  min-height: 24px;
+}
+
+.result svg { flex: none; margin-top: 2px; color: var(--hue); }
+.result p { margin: 0; overflow-wrap: anywhere; }
+.result .sub { margin-top: 2px; }
+
+.foot { margin-top: auto; padding-top: 28px; }
+
+/* ---- prompts ---- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.chip {
+  min-height: 40px;
+  max-width: 100%;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  background: none;
+  color: var(--ink);
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--hue);
+  background: var(--hue);
+  color: var(--bg);
+  font-weight: 500;
+}
+
+.who { margin: 10px 0 0; }
+
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.inline .field { flex: 1 1 100%; }
+.inline label { flex: 1 1 100%; margin: 0; }
+
+.guard {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.guard p { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+
+.text {
+  flex: 1 0 280px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--field);
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 23px;
+  caret-color: var(--hue);
+  resize: none;
+}
+
+.note { margin-left: 4px; }
+
+.more {
+  display: flex;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+/* ---- export and import ---- */
+
+.part { margin-top: 26px; }
+.part + .part { margin-top: 44px; }
+
+.beside {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.beside .btn { flex: none; }
+.beside p { margin: 0; font-size: 15px; color: var(--hue); }
+
+.file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.status { margin: 12px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+.status:empty { display: none; }
+
+/* ---- the session gone ---- */
+
+.gone { padding-top: 64px; }
+.gone h1 { font-size: 22px; }
+.gone p { margin: 10px 0 0; font-size: 17px; color: var(--sub); }

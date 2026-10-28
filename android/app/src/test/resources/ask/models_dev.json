@@ -1,0 +1,56 @@
+{
+  "moonshotai": {
+    "id": "moonshotai",
+    "env": ["MOONSHOT_API_KEY"],
+    "npm": "@ai-sdk/openai-compatible",
+    "name": "Moonshot AI",
+    "doc": "A \"quoted\" {brace} [bracket] \\ and a closing } in words",
+    "models": {
+      "kimi-k2": {"id": "kimi-k2", "name": "Kimi K2", "reasoning": false, "cost": {"input": 0.6, "output": 2.5}, "limit": {"context": 131072, "output": 16384}}
+    }
+  },
+  "count": 3,
+  "google": {
+    "id": "google",
+    "env": ["GOOGLE_GENERATIVE_AI_API_KEY", "GEMINI_API_KEY"],
+    "npm": "@ai-sdk/google",
+    "name": "Google",
+    "doc": "https://ai.google.dev/gemini-api/docs/pricing",
+    "models": {
+      "gemini-2.5-flash": {
+        "id": "gemini-2.5-flash",
+        "name": "Gemini 2.5 Flash",
+        "attachment": true,
+        "reasoning": true,
+        "tool_call": true,
+        "modalities": {"input": ["text", "image", "audio", "video", "pdf"], "output": ["text"]},
+        "open_weights": false,
+        "cost": {"input": 0.3, "output": 2.5, "cache_read": 0.075, "input_audio": 1},
+        "limit": {"context": 1048576, "output": 65536}
+      },
+      "gemini-1.5-flash": {
+        "id": "gemini-1.5-flash",
+        "name": "Gemini 1.5 Flash",
+        "status": "deprecated",
+        "modalities": {"input": ["text"], "output": ["text"]},
+        "cost": {"input": 0.075, "output": 0.3},
+        "limit": {"context": 0, "output": 8192}
+      },
+      "gemma-3-27b-it": {
+        "id": "gemma-3-27b-it",
+        "cost": {"input": 0, "output": 0},
+        "limit": {"context": 131072}
+      }
+    }
+  },
+  "openai": {
+    "id": "openai",
+    "name": "OpenAI",
+    "models": {
+      "gpt-4o-mini": {"id": "gpt-4o-mini", "name": "GPT-4o mini", "reasoning": false, "cost": {"input": 0.15, "output": 0.6, "cache_read": 0.08}, "limit": {"context": 128000, "output": 16384}, "modalities": {"input": ["text", "image"], "output": ["text"]}},
+      "gpt-image-1": {"id": "gpt-image-1", "name": "GPT Image 1", "cost": {"input": 5}, "limit": {"context": 0, "output": 0}}
+    }
+  },
+  "mistral": {"id": "mistral", "name": "Mistral", "models": {"mistral-small-latest": {"id": "mistral-small-latest", "name": "Mistral Small", "cost": {"input": 0.1, "output": 0.3}, "limit": {"context": 128000, "output": 16384}}}},
+  "zz-last": {"id": "zz-last", "name": "Caf\u00e9 cr\u00e8me, é", "models": {}}
+}

@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Croissant boot animation</title>
+<style>
+  html, body { margin: 0; background: #0B0B0C; height: 100%; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #stage { width: 480px; height: 640px; background: #0B0B0C; }
+  svg { display: block; }
+</style>
+<div id="stage">
+<!-- A centered kamado viewed from above: elliptical exhaust, domed lid and tapered bowl.
+     Keep the mascot in one group so the static asset shares this exact geometry. -->
+<svg id="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" width="480" height="640"
+     fill="#FF4F00" stroke="#0B0B0C" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+  <g id="mascot" stroke="none" stroke-width="12" paint-order="stroke fill">
+    <!-- One 6 px visible gap everywhere: 12 px centered strokes are painted
+         before the orange fill, which covers their inner half. -->
+    <!-- The bowl extends behind the lid so a true offset stroke defines the
+         seam, rather than two vertically shifted ellipses that pinch at the sides. -->
+    <path id="body" d="M132,320 L348,320
+      L347,346 Q347,351 344,356
+      C342,401 330,443 316,463
+      C303,485 177,485 164,463
+      C150,443 138,401 136,356
+      Q133,351 133,346 Z"/>
+
+    <!-- The lid covers the upper half of this stroke, exposing a uniform 6 px
+         separator measured perpendicular to the curved edge. -->
+    <path id="lid-seam" d="M130,320 A110,54 0 0 0 350,320"
+      fill="none" stroke="#0B0B0C"/>
+
+    <!-- A full, rounded dome seen from above. The elliptical front edge is
+         deliberately deeper than the previous front-view silhouette. -->
+    <path id="dome" d="M240,239
+      C196,239 157,263 143,299
+      C140,307 132,311 130,320
+      A110,54 0 0 0 350,320
+      C348,311 340,307 337,299
+      C323,263 284,239 240,239 Z"/>
+
+    <!-- Short exhaust cylinder, with a slight foot and visible oval top.
+         Only the lower perimeter is outlined, matching the orange reference. -->
+    <path id="exhaust" stroke="#0B0B0C"
+      d="M210,239 L210,252 L207,257
+      C207,277 273,277 273,257
+      L270,252 L270,239
+      C270,219 210,219 210,239 Z"/>
+  </g>
+
+  <!-- Smoke: three puffs, staggered by a third of the 2 s loop, each rising, growing,
+       wobbling and fading. Period 2 s = 60 frames at 30 fps, so the loop closes. -->
+  <g id="smoke" stroke-width="5">
+    <circle r="6">
+      <animate attributeName="cy" values="214;109" dur="2s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="cx" values="240;228;244;234" dur="2s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="4;15" dur="2s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.55;1" dur="2s" begin="0s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="6">
+      <animate attributeName="cy" values="214;109" dur="2s" begin="-0.667s" repeatCount="indefinite"/>
+      <animate attributeName="cx" values="240;250;232;242" dur="2s" begin="-0.667s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="4;15" dur="2s" begin="-0.667s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.55;1" dur="2s" begin="-0.667s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="6">
+      <animate attributeName="cy" values="214;109" dur="2s" begin="-1.333s" repeatCount="indefinite"/>
+      <animate attributeName="cx" values="240;232;248;238" dur="2s" begin="-1.333s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="4;15" dur="2s" begin="-1.333s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.55;1" dur="2s" begin="-1.333s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Wordmark from the boot logo PNG, under the grill. -->
+  <clipPath id="wm"><rect x="120" y="574" width="240" height="52"/></clipPath>
+  <image href="../logo/croissant-boot-logo.png" x="0" y="278" width="480" height="640" clip-path="url(#wm)"/>
+</svg>
+</div>
+<script>
+// Timeline (30 fps): one looping part, LOOP frames, no intro and no outro.
+const FPS = 30, INTRO = 0, LOOP = 60, TOTAL = INTRO + LOOP;
+const svg = document.getElementById('svg');
+function render(f) { svg.pauseAnimations(); svg.setCurrentTime(f / FPS); }
+const q = new URLSearchParams(location.search);
+if (q.has('static') || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.getElementById('smoke').style.display = 'none';
+  svg.pauseAnimations();
+}
+if (q.has('frame')) { render(+q.get('frame')); document.title = 'ready'; }
+window.render = render; window.TOTAL = TOTAL; window.INTRO = INTRO; window.LOOP = LOOP;
+</script>

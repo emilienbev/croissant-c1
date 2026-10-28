@@ -1,0 +1,1 @@
+{"candidates":[{"content":{"parts":[{"text":"Hi there"}],"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":1,"candidatesTokenCount":3,"totalTokenCount":16,"thoughtsTokenCount":12},"modelVersion":"gemini-3.1-pro-preview","responseId":"x2DwaKbcLs2fz7IPoe2W-Q4"}

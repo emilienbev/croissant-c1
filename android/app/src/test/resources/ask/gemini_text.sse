@@ -1,0 +1,6 @@
+data: {"candidates": [{"content": {"parts": [{"text": "**Weighing the question**\n\nThe user asks for a capital.","thought": true}],"role": "model"},"index": 0}],"usageMetadata": {"promptTokenCount": 812,"totalTokenCount": 812,"promptTokensDetails": [{"modality": "TEXT","tokenCount": 812}]},"modelVersion": "gemini-3-flash-preview","responseId": "rTzwaPe1Ccivz7IP6Ma4uAE"}
+
+data: {"candidates": [{"content": {"parts": [{"text": "Paris is","thoughtSignature": "CiQBVKhc7ywpG0n5Cjv2B3x7Uq5S3i0rT1y0KX0b1vY2pSGo6vsKZwFUqFzv"}],"role": "model"},"index": 0}],"usageMetadata": {"promptTokenCount": 812,"totalTokenCount": 812},"modelVersion": "gemini-3-flash-preview","responseId": "rTzwaPe1Ccivz7IP6Ma4uAE"}
+
+data: {"candidates": [{"content": {"parts": [{"text": " the capital of France."}],"role": "model"},"finishReason": "STOP","index": 0}],"usageMetadata": {"promptTokenCount": 812,"candidatesTokenCount": 9,"totalTokenCount": 1100,"cachedContentTokenCount": 512,"thoughtsTokenCount": 279},"modelVersion": "gemini-3-flash-preview","responseId": "rTzwaPe1Ccivz7IP6Ma4uAE"}
+

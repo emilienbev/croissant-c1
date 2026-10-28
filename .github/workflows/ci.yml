@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Version and leaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: One version everywhere
+        run: scripts/check-version.sh
+      - name: No home paths or tailnet addresses
+        run: scripts/check-leaks.sh
+      - name: No secrets
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  android:
+    name: App
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/android-setup
+      - name: Release build (debug key) and unit tests
+        working-directory: android
+        run: ./gradlew :app:assembleRelease :app:testDebugUnitTest
+      - name: Version in the APK
+        run: |
+          "$BUILD_TOOLS/aapt2" dump badging android/app/build/outputs/apk/release/app-release.apk | head -1
+          "$BUILD_TOOLS/aapt2" dump badging android/app/build/outputs/apk/release/app-release.apk \
+            | grep -q "versionName='$(cat VERSION)'"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/croissant-ci/ortload/ort-1.28.0.aar
+          key: ortload-${{ hashFiles('device/offline-models/build-ortload.sh') }}
+      - name: ortload
+        run: device/offline-models/build-ortload.sh ~/.cache/croissant-ci/ortload
+
+  server:
+    name: Server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: server/uv.lock
+      # On Linux the markers in pyproject.toml leave out mlx-whisper and mflux (Apple
+      # Silicon only) and take faster-whisper.
+      - name: Install
+        run: uv sync --locked
+      - name: Compile
+        run: uv run python -m compileall -q croissant_server tools
+      - name: Import every module
+        run: >
+          uv run python -c "import importlib, pkgutil, croissant_server as c;
+          [importlib.import_module('croissant_server.' + m.name) for m in pkgutil.iter_modules(c.__path__)]"
+      - name: Version
+        run: test "$(uv run croissant-server --version)" = "croissant-server $(cat ../VERSION)"
+      - name: Unit tests
+        run: uv run python -m unittest discover tests
+
+  installer:
+    name: Installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: installer/uv.lock
+      - name: Install
+        run: uv sync --locked --project installer
+      - name: Compile
+        run: uv run --project installer python -m compileall -q installer/croissant installer/tests scripts
+      - name: Tests
+        run: uv run --project installer python -m unittest discover -s installer/tests
+      - name: Help
+        run: ./croissant --help
+      - name: Version
+        run: test "$(./croissant --version)" = "croissant $(cat VERSION)"
+
+  cli:
+    name: CLI from a release (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CROISSANT_DIST: ${{ github.workspace }}/dist
+    steps:
+      - uses: actions/checkout@v7
+      # As release.yml publishes it, installed as the README's command does, from dist/.
+      - name: Build
+        run: scripts/build-cli.sh "$CROISSANT_DIST"
+      - name: Install
+        run: sh "$CROISSANT_DIST/install.sh"
+      - name: Runs
+        run: |
+          test "$("$HOME/.croissant/bin/croissant" --version)" = "croissant $(cat VERSION)"
+          "$HOME/.croissant/bin/croissant" --help >/dev/null
+          "$HOME/.croissant/bin/croissant" app install --help >/dev/null
+      - name: Again, the PATH line once
+        run: |
+          sh "$CROISSANT_DIST/install.sh"
+          test "$(cat ~/.bashrc ~/.bash_profile ~/.bash_login ~/.zshrc ~/.profile 2>/dev/null | grep -c '/.croissant/bin')" = 1
+      - name: Upgrade to the same, its own install.sh
+        run: |
+          "$HOME/.croissant/bin/croissant" upgrade --to "$(cat VERSION)"
+          test "$(ls "$HOME/.croissant/versions")" = "$(cat VERSION)"

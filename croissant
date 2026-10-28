@@ -1,0 +1,39 @@
+#!/bin/sh
+# The CLI, from a checkout of this repo (./croissant install), or as install.sh puts a release
+# in ~/.croissant (installer/README.md). It runs on uv. From a checkout without uv on the PATH
+# it offers uv's own installer, pinned, into the cache inside this checkout: nothing on the
+# PATH or in a shell profile changes.
+root=$(cd "$(dirname "$0")" && pwd -P)
+UV_VERSION=0.11.19
+if [ -f "$root/install.json" ]; then     # installed: ~/.croissant/versions/X.Y.Z
+    home=$(dirname "$(dirname "$root")")
+    cache=${CROISSANT_CACHE:-$home/cache}
+    run="--frozen --no-dev"
+else
+    cache=${CROISSANT_CACHE:-$root/cache}
+    run=
+fi
+
+uv=$(command -v uv)
+[ -z "$uv" ] && [ -x "$cache/uv/uv" ] && uv=$cache/uv/uv
+if [ -z "$uv" ] && [ -n "$run" ]; then
+    echo "uv, which runs Croissant's CLI, is gone from the PATH and from $cache/uv. Run install.sh again."
+    exit 1
+fi
+if [ -z "$uv" ]; then
+    echo "uv (https://docs.astral.sh/uv/) runs the installer and the server, and is not on this machine."
+    if [ ! -t 0 ]; then
+        echo "Install it, or run ./croissant from a terminal to have it put in $cache/uv."
+        exit 1
+    fi
+    printf 'Install uv %s into %s? [Y/n] ' "$UV_VERSION" "$cache/uv"
+    read -r answer
+    case $answer in [nN]*) echo "Install uv, then run ./croissant again."; exit 1 ;; esac
+    url=https://github.com/astral-sh/uv/releases/download/$UV_VERSION/uv-installer.sh
+    if command -v curl >/dev/null; then get="curl -LsSf $url"; else get="wget -qO- $url"; fi
+    $get | env UV_INSTALL_DIR="$cache/uv" UV_NO_MODIFY_PATH=1 sh || exit 1
+    uv=$cache/uv/uv
+    echo "uv is in $cache/uv. For the server: cd server && $uv run croissant-server"
+fi
+# shellcheck disable=SC2086
+exec "$uv" run --quiet $run --project "$root/installer" croissant "$@"

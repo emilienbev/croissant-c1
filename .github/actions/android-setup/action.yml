@@ -1,0 +1,30 @@
+name: Android setup
+description: >
+  What android/ builds with: the JDK the Gradle daemon is pinned to
+  (android/gradle/gradle-daemon-jvm.properties), the SDK platform, build-tools and NDK, Gradle's
+  cache, and the offline Translator's two AARs (android/libs/fetch.sh, hash-checked).
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: "25"
+    - uses: android-actions/setup-android@v4
+      with:
+        # compileSdk 37 (android/app/build.gradle.kts), AGP 9.4's build-tools, and the NDK
+        # android/lpac-jni builds with.
+        packages: platform-tools platforms;android-37.0 build-tools;36.0.0 ndk;28.2.13676358
+        log-accepted-android-sdk-licenses: false
+    - uses: gradle/actions/setup-gradle@v6
+      with:
+        # The open-source cache; the default "enhanced" one is a commercial service.
+        cache-provider: basic
+    - uses: actions/cache@v6
+      with:
+        path: android/libs/*.aar
+        key: android-libs-${{ hashFiles('android/libs/fetch.sh') }}
+    - shell: bash
+      run: |
+        android/libs/fetch.sh
+        echo "BUILD_TOOLS=$ANDROID_HOME/build-tools/36.0.0" >> "$GITHUB_ENV"

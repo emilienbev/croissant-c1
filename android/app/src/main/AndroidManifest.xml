@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- The mobile signal, the network and whether data is on: the top bar's bars and
+         the eSIM page's Mobile data row. Granted by the owner (Kiosk.apply). -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Control centre: the Bluetooth tile and the paired list. Enabling the radio is
+         closed to apps on 13 except the Device Owner. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Timers: exact alarms as an alarm clock (API 33 grants USE_EXACT_ALARM at install,
+         no prompt), and the boot broadcast to reschedule them from timers.json. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="false"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Croissant">
+
+        <!-- The androidx.window library (pulled in by CameraX's view module) declares these
+             two optional system libraries. On this GSI /system_ext is a symlink into
+             /system, so the path dexopt records for them never matches the one the class
+             loader sees at runtime, ART rejects the compiled base.odex, and the whole app
+             runs in the interpreter. Nothing here needs foldable window extensions, so
+             they are removed from the merged manifest. -->
+        <uses-library android:name="androidx.window.extensions" tools:node="remove" />
+        <uses-library android:name="androidx.window.sidecar" tools:node="remove" />
+
+        <!-- directBootAware on every component, not on <application>: the framework parser
+             reads it per component only (ParsedMainComponentUtils), and the HOME must resolve
+             while user storage is still locked or Settings' FallbackHome takes its place.
+             The system's keyboard never comes (ui/Keyboard.kt, NoSystemKeyboard): nothing is
+             resized for it, and the window never asks for it. -->
+        <activity
+            android:name=".MainActivity"
+            android:directBootAware="true"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustNothing"
+            android:configChanges="orientation|screenSize|keyboardHidden|density">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- The app is the launcher: HOME is what boots and what "home" returns
+                 to. Device Owner pins it to us (Kiosk.apply). -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <!-- An eSIM activation code as a link, LPA:1$<SM-DP+>$<matching ID>, opens
+                 Settings > eSIM > Add profile filled in. Filters match
+                 the scheme's case exactly, so both spellings. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="LPA" />
+                <data android:scheme="lpa" />
+            </intent-filter>
+        </activity>
+
+
+        <receiver
+            android:name=".AdminReceiver"
+            android:directBootAware="true"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".BatteryReceiver"
+            android:directBootAware="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".TimerReceiver"
+            android:directBootAware="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- The installer's result for an update this app installed on itself (update/Updater.kt). -->
+        <receiver
+            android:name=".update.InstallStatus"
+            android:directBootAware="true"
+            android:exported="false" />
+
+        <!-- Atelier's apps run here, never in this process (2026-10-17): every app's QuickJS
+             in one isolated process with a throwaway uid, no root policy, no app files, no
+             network and no permissions, reached only over its binder (atelier/AtelierService.kt). -->
+        <service
+            android:name=".atelier.AtelierService"
+            android:directBootAware="true"
+            android:exported="false"
+            android:isolatedProcess="true"
+            android:process=":atelier" />
+
+        <service
+            android:name=".VoiceService"
+            android:directBootAware="true"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+    </application>
+</manifest>

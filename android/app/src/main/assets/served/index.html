@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
+<meta name="referrer" content="no-referrer">
+<title>Croissant</title>
+<link rel="stylesheet" href="/app.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<div class="page">
+  <nav class="tabs" role="tablist" aria-label="settings">
+    <button type="button" role="tab" data-tab="providers" aria-selected="true">providers</button>
+    <button type="button" role="tab" data-tab="prompts" aria-selected="false">prompts</button>
+    <button type="button" role="tab" data-tab="export" aria-selected="false">export</button>
+  </nav>
+
+  <aside id="wifi" class="warn" hidden>
+    <strong>on plain wi-fi, not the tailnet</strong>
+    <span id="wifi-words"></span>
+  </aside>
+
+  <main id="view" class="view" aria-live="polite">
+    <p class="lede">loading</p>
+  </main>
+
+  <section id="gone" class="gone" hidden>
+    <h1>this page has closed</h1>
+    <p>its session ended, or the r1 left its page. on the r1, open settings, ask, on a phone, and scan the new code</p>
+  </section>
+
+  <noscript><p class="lede">this page needs javascript</p></noscript>
+</div>
+</body>
+</html>

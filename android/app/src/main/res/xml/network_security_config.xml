@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext ws:// is allowed to any host. The server address is editable in the
+  app's Settings, so a per-host allow list cannot be kept in step. Justification:
+  the device only ever talks to its own server over the tailnet, where
+  every packet is WireGuard-encrypted end to end, and the only user is the owner.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

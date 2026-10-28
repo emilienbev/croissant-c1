@@ -1,0 +1,31 @@
+# Rabbit R1 side button -> app push-to-talk.
+#
+# The side button is the MT6357 PMIC power key, but MediaTek's downstream kernel
+# reports it through the KEYPAD driver: input device "mtk-kpd" (/dev/input/event0),
+# scancode 116 (KEY_POWER). Verified with getevent 2026-09-13; the separate
+# "mtk-pmic-keys" device declares KEY_POWER too but never emits it.
+#
+# Generic.kl maps 116 to POWER, which the framework consumes (screen off, power
+# menu) and never delivers to an app. This file maps it to F12 instead, which
+# MainActivity handles as the hardware PTT key. F12 has no meaning to the
+# framework or to any app on the device. It was CAMERA first: that works while
+# awake but the window policy keeps a list of keys that never wake a dark screen
+# (media keys and CAMERA), so the WAKE flag below was silently vetoed - verified
+# 2026-09-13 with synthetic presses while asleep. A device-specific .kl replaces
+# Generic.kl entirely for that device. mtk-kpd also declares KEY_VOLUMEDOWN, but
+# the R1 has no volume buttons and it is never emitted, so it is left unmapped.
+#
+# Installed at /data/system/devices/keylayout/mtk-kpd.kl by install.sh (Android's
+# user key-layout repository; no Magisk module needed). The scroll wheel
+# (och1970_holl_key) and touch panel are separate devices and unaffected.
+#
+# WAKE makes the button wake the device from sleep. The framework swallows the
+# DOWN and UP of the press that woke it, so a short press from sleep only wakes;
+# a hold from sleep reaches the app as auto-repeats, which it treats as a hold
+# already past its threshold. Sleeping is the app's job (short press while awake).
+#
+# Consequences: no Android power menu and no screen toggle from the button. The
+# PMIC hardware long-press reset was found NOT to fire on this device, so the only
+# off/reset paths are the app (root) and adb.
+
+key 116   F12   WAKE

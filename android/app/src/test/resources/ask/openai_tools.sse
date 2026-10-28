@@ -1,0 +1,18 @@
+data: {"id":"chatcmpl-AwB2","object":"chat.completion.chunk","created":1760616002,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_Qx1","type":"function","function":{"name":"agenda_add","arguments":""}}],"refusal":null},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-AwB2","object":"chat.completion.chunk","created":1760616002,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"ti"}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-AwB2","object":"chat.completion.chunk","created":1760616002,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"tle\": \"dentist\", "}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-AwB2","object":"chat.completion.chunk","created":1760616002,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"at\": \"2026-10-23T15:00\"}"}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-AwB2","object":"chat.completion.chunk","created":1760616002,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"id":"call_Qx2","type":"function","function":{"name":"timers_list","arguments":""}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-AwB2","object":"chat.completion.chunk","created":1760616002,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"{}"}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-AwB2","object":"chat.completion.chunk","created":1760616002,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],"usage":null}
+
+data: {"id":"chatcmpl-AwB2","object":"chat.completion.chunk","created":1760616002,"model":"gpt-4o-2024-08-06","choices":[],"usage":{"prompt_tokens":3851,"completion_tokens":41,"total_tokens":3892,"prompt_tokens_details":{"cached_tokens":0,"audio_tokens":0}}}
+
+data: [DONE]
+

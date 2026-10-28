@@ -1,0 +1,8 @@
+{
+  "providers": {
+    "openai": {"key": "sk-..."},
+    "gemini": {"key": "..."},
+    "groq": {"key": "gsk_..."},
+    "myserver": {"kind": "openai", "url": "http://100.x.y.z:8000/v1", "title": "My server"}
+  }
+}

@@ -1,0 +1,75 @@
+# Raw partition dumps are large and/or contain personal data — keep OFF git, store off-device.
+stock/dumps/
+*.img
+*.bin
+*.raw
+
+# Local tooling (mtkclient + venv) — not project content.
+# Anchored to the repo root: an unanchored "tools/" also swallows server/tools.
+/tools/
+
+# Device-unique identifiers (ME_ID / SOC_ID) — never commit
+notes/*.local.md
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+
+# What the installer and the repo's tools keep: downloads, mtkclient, stock boot images,
+# each R1's work files, boot screens, the owner's font, offline models (installer/README.md).
+/cache/
+
+# Python installer
+installer/.venv/
+installer/**/__pycache__/
+
+# ACP bridge
+acp-bridge/.venv/
+acp-bridge/**/__pycache__/
+
+# Python server
+server/.venv/
+server/__pycache__/
+server/**/__pycache__/
+server/captures/
+server/data/
+# Which models run where, with the providers' keys (server/croissant_server/providers.py).
+server/providers.json
+server/providers.models.json
+server/providers.prices.json
+# Model weights are kept beside the server for reproducible offline runs, but are
+# far too large for git. Keep the small provenance note tracked.
+server/models/*
+!server/models/README.md
+
+# macOS
+.DS_Store
+__pycache__/
+
+# Scratch diagnostics for the Mac's own VPN: written here because that is where
+# the shell was, nothing to do with the project.
+/.windscribe-diagnose.sh
+/windscribe-diagnostics.txt
+
+# The offline Translator's AARs, fetched by android/libs/fetch.sh
+android/libs/*.aar
+
+# Private notes and design pages stay in the private repo; leftovers on disk never ship.
+/notes/
+
+# Signing keys never go in git (android/README.md, "Releases").
+*.jks
+*.keystore
+
+# The maintainers' own working files: design records, session notes, private agent
+# instructions and skills. Local only, never committed.
+/internal/
+/CLAUDE.local.md
+/.claude/
+
+# The CLI as a release publishes it (scripts/build-cli.sh)
+/dist/

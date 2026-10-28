@@ -1,0 +1,726 @@
+[
+  {
+    "name": "qwen on its default, the shopping app, the server running its three",
+    "in": {
+      "entry": "ollama:qwen3.5:9b-mlx",
+      "now": "2026-10-16T09:00:00+01:00",
+      "photo": false,
+      "server_tools": [
+        "image_generate",
+        "web_search",
+        "tape_ask"
+      ],
+      "apps": [
+        {
+          "id": "shopping",
+          "name": "shopping",
+          "tool": {
+            "name": "add_item",
+            "description": "Add an item to the shopping list",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "the item, a word or two"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "out": {
+      "variant": "default",
+      "system": "You are the voice assistant on a small handheld device. Use a tool only when the user asks for that action: add, change, delete, list, set a timer. Plain questions are answered directly from what you know, without tools. Resolve relative dates such as tomorrow or next Friday from the current date and time given below; 'next' plus a weekday means its first future occurrence. Pass dates in the documented format. After a tool call, confirm in one short sentence what was done, naming the item and, if any, the date and time. Do not announce what you are about to do: call the tool first, then confirm. Never refuse, and never start what was not asked for: do what was asked, or answer as best you can.\n\nBe direct and brief: two or three short sentences unless the question genuinely needs more. The user spoke their question aloud, so expect transcription errors and interpret them charitably.\n\nYour tools:\n- agenda_list: List the agenda: every reminder, and the events overlapping a date range (today and the next two weeks when no range is given), with their ids.\n- agenda_add: Add something the user wants to remember or do: a reminder, an event, a meeting, an appointment. Whatever the user wants to remember or do ('remind me', 'add an event', 'put in my calendar', 'note that'), whatever it is about (this device and its software included), is agenda_add. No day or time said: no `at`. Events do not repeat: for 'every Tuesday' add each occurrence separately.\n- agenda_update: Change an agenda item by id: its title, when (an `at` on a reminder turns it into an event), end, location, notes, or a reminder's done state.\n- agenda_delete: Delete an agenda item by id.\n- timers_list: List the running timers with the seconds left.\n- timers_add: Start a countdown timer. In the confirmation, name only the duration that was asked for, never a finish time.\n- timers_cancel: Cancel a running timer.\n- image_generate: Make a picture and put it in the user's photo library. Use it only when the user tells you to make, draw, generate, create or paint one. It returns straight away; the picture appears on the device under Photos, in Generated, about a minute later. Say that, and never say it is on screen.\n- web_search: Look something up on the web. Use it only when the answer depends on something recent, changing or local: news, prices, weather, sports results, opening hours, anything later than your training. What you already know, answer directly.\n- tape_ask: Answer a question about one of the user's recorded tapes (the Recorder) from its transcript. Use it whenever the user asks about a tape, a recording, a talk or a meeting they recorded, named by its number or its title.\n\nApps on this device add tools of their own. Call one when the user asks for what it does; its app comes up on the screen.\n- shopping_add_item: Add an item to the shopping list (the shopping app)\n\nCurrent date and time: Friday 16 October 2026, 09:00 (UTC+01:00). Use this offset in every date-time you pass to a tool. The next seven dates are: Saturday 2026-10-17, Sunday 2026-10-18, Monday 2026-10-19, Tuesday 2026-10-20, Wednesday 2026-10-21, Thursday 2026-10-22, Friday 2026-10-23.",
+      "tools": [
+        {
+          "name": "agenda_list",
+          "description": "List the agenda: every reminder, and the events overlapping a date range (today and the next two weeks when no range is given), with their ids.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              },
+              "to": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              }
+            },
+            "required": []
+          }
+        },
+        {
+          "name": "agenda_add",
+          "description": "Add something the user wants to remember or do: a reminder, an event, a meeting, an appointment. Whatever the user wants to remember or do ('remind me', 'add an event', 'put in my calendar', 'note that'), whatever it is about (this device and its software included), is agenda_add. No day or time said: no `at`. Events do not repeat: for 'every Tuesday' add each occurrence separately.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": "string",
+                "description": "when the user named a day or a time, and only then: YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00. A day alone makes an all-day event, a time makes a one-hour event, none makes a reminder."
+              },
+              "end": {
+                "type": "string",
+                "description": "optional, YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00; defaults to one hour after at"
+              },
+              "location": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string",
+                "description": "short, one line"
+              }
+            },
+            "required": [
+              "title"
+            ]
+          }
+        },
+        {
+          "name": "agenda_update",
+          "description": "Change an agenda item by id: its title, when (an `at` on a reminder turns it into an event), end, location, notes, or a reminder's done state.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              },
+              "done": {
+                "type": "boolean",
+                "description": "reminders only"
+              },
+              "end": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              },
+              "location": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "name": "agenda_delete",
+          "description": "Delete an agenda item by id.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "name": "timers_list",
+          "description": "List the running timers with the seconds left.",
+          "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        {
+          "name": "timers_add",
+          "description": "Start a countdown timer. In the confirmation, name only the duration that was asked for, never a finish time.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "optional, what the timer is for"
+              },
+              "seconds": {
+                "type": "integer",
+                "description": "duration in seconds"
+              }
+            },
+            "required": [
+              "seconds"
+            ]
+          }
+        },
+        {
+          "name": "timers_cancel",
+          "description": "Cancel a running timer.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "name": "image_generate",
+          "description": "Make a picture and put it in the user's photo library. Use it only when the user tells you to make, draw, generate, create or paint one. It returns straight away; the picture appears on the device under Photos, in Generated, about a minute later. Say that, and never say it is on screen.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "prompt": {
+                "type": "string",
+                "description": "the user's exact words for what to picture, in English (translate if they spoke another language), without the request itself ('draw me', 'make a picture of'). Add no word of your own: no style, mood, light, setting or detail they did not say."
+              }
+            },
+            "required": [
+              "prompt"
+            ]
+          }
+        },
+        {
+          "name": "web_search",
+          "description": "Look something up on the web. Use it only when the answer depends on something recent, changing or local: news, prices, weather, sports results, opening hours, anything later than your training. What you already know, answer directly.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "search words, not the question repeated: 'f1 spanish grand prix result', not 'who won the last f1 grand prix'."
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "tape_ask",
+          "description": "Answer a question about one of the user's recorded tapes (the Recorder) from its transcript. Use it whenever the user asks about a tape, a recording, a talk or a meeting they recorded, named by its number or its title.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "description": "the question to ask of the transcript, complete on its own"
+              },
+              "tape": {
+                "type": "string",
+                "description": "the tape as the user named it: its number ('21') or words of its title ('the compiler talk')"
+              }
+            },
+            "required": [
+              "tape",
+              "question"
+            ]
+          }
+        },
+        {
+          "name": "shopping_add_item",
+          "description": "Add an item to the shopping list (the shopping app)",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "the item, a word or two"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Gemma at Gemini, suggested gemma, in UTC as the year rolls over, no web search",
+    "in": {
+      "entry": "gemini:gemma-4-26b-it",
+      "now": "2026-12-31T23:59:30Z",
+      "photo": false,
+      "server_tools": [
+        "image_generate",
+        "tape_ask"
+      ],
+      "apps": []
+    },
+    "out": {
+      "variant": "gemma",
+      "system": "You are the voice assistant on a small handheld device. The user holds a button and speaks; you get a speech-recognition transcript, so expect misheard words and read them charitably. Your reply is shown as text on a small screen.\n\nHow you act:\n- Do what was asked and nothing more: never call a tool or start anything the user did not ask for.\n- What none of your tools is for, answer from what you know.\n- Never refuse. Always try to help as far as you can; if something is beyond what you can do, say so plainly and help with what you can.\n- Call the tool first, then confirm what was done. Resolve relative dates from the current date below; 'next' plus a weekday is its first future occurrence.\n\nHow you answer: directly and briefly, two or three short sentences unless the question needs more. A confirmation is one short sentence naming the item and any date and time. Start with the substance: never open with 'OK', 'Sure' or 'Done', and never close with an offer.\n\nYour tools:\n- agenda_list: List the agenda: every reminder, and the events overlapping a date range (today and the next two weeks when no range is given), with their ids.\n- agenda_add: Add something the user wants to remember or do: a reminder, an event, a meeting, an appointment. Whatever the user wants to remember or do ('remind me', 'add an event', 'put in my calendar', 'note that'), whatever it is about (this device and its software included), is agenda_add. No day or time said: no `at`. Events do not repeat: for 'every Tuesday' add each occurrence separately.\n- agenda_update: Change an agenda item by id: its title, when (an `at` on a reminder turns it into an event), end, location, notes, or a reminder's done state.\n- agenda_delete: Delete an agenda item by id.\n- timers_list: List the running timers with the seconds left.\n- timers_add: Start a countdown timer. In the confirmation, name only the duration that was asked for, never a finish time.\n- timers_cancel: Cancel a running timer.\n- image_generate: Make a picture and put it in the user's photo library. Use it only when the user tells you to make, draw, generate, create or paint one. It returns straight away; the picture appears on the device under Photos, in Generated, about a minute later. Say that, and never say it is on screen.\n- tape_ask: Answer a question about one of the user's recorded tapes (the Recorder) from its transcript. Use it whenever the user asks about a tape, a recording, a talk or a meeting they recorded, named by its number or its title.\n\nCurrent date and time: Thursday 31 December 2026, 23:59 (UTC+00:00). Use this offset in every date-time you pass to a tool. The next seven dates are: Friday 2027-01-01, Saturday 2027-01-02, Sunday 2027-01-03, Monday 2027-01-04, Tuesday 2027-01-05, Wednesday 2027-01-06, Thursday 2027-01-07.",
+      "tools": [
+        {
+          "name": "agenda_list",
+          "description": "List the agenda: every reminder, and the events overlapping a date range (today and the next two weeks when no range is given), with their ids.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              },
+              "to": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              }
+            },
+            "required": []
+          }
+        },
+        {
+          "name": "agenda_add",
+          "description": "Add something the user wants to remember or do: a reminder, an event, a meeting, an appointment. Whatever the user wants to remember or do ('remind me', 'add an event', 'put in my calendar', 'note that'), whatever it is about (this device and its software included), is agenda_add. No day or time said: no `at`. Events do not repeat: for 'every Tuesday' add each occurrence separately.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": "string",
+                "description": "when the user named a day or a time, and only then: YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00. A day alone makes an all-day event, a time makes a one-hour event, none makes a reminder."
+              },
+              "end": {
+                "type": "string",
+                "description": "optional, YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00; defaults to one hour after at"
+              },
+              "location": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string",
+                "description": "short, one line"
+              }
+            },
+            "required": [
+              "title"
+            ]
+          }
+        },
+        {
+          "name": "agenda_update",
+          "description": "Change an agenda item by id: its title, when (an `at` on a reminder turns it into an event), end, location, notes, or a reminder's done state.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              },
+              "done": {
+                "type": "boolean",
+                "description": "reminders only"
+              },
+              "end": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              },
+              "location": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "name": "agenda_delete",
+          "description": "Delete an agenda item by id.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "name": "timers_list",
+          "description": "List the running timers with the seconds left.",
+          "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        {
+          "name": "timers_add",
+          "description": "Start a countdown timer. In the confirmation, name only the duration that was asked for, never a finish time.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "optional, what the timer is for"
+              },
+              "seconds": {
+                "type": "integer",
+                "description": "duration in seconds"
+              }
+            },
+            "required": [
+              "seconds"
+            ]
+          }
+        },
+        {
+          "name": "timers_cancel",
+          "description": "Cancel a running timer.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "name": "image_generate",
+          "description": "Make a picture and put it in the user's photo library. Use it only when the user tells you to make, draw, generate, create or paint one. It returns straight away; the picture appears on the device under Photos, in Generated, about a minute later. Say that, and never say it is on screen.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "prompt": {
+                "type": "string",
+                "description": "the user's exact words for what to picture, in English (translate if they spoke another language), without the request itself ('draw me', 'make a picture of'). Add no word of your own: no style, mood, light, setting or detail they did not say."
+              }
+            },
+            "required": [
+              "prompt"
+            ]
+          }
+        },
+        {
+          "name": "tape_ask",
+          "description": "Answer a question about one of the user's recorded tapes (the Recorder) from its transcript. Use it whenever the user asks about a tape, a recording, a talk or a meeting they recorded, named by its number or its title.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "description": "the question to ask of the transcript, complete on its own"
+              },
+              "tape": {
+                "type": "string",
+                "description": "the tape as the user named it: its number ('21') or words of its title ('the compiler talk')"
+              }
+            },
+            "required": [
+              "tape",
+              "question"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "a photo hold on gemma4 with an app enabled: no tools, Gemma's photo rules",
+    "in": {
+      "entry": "ollama:gemma4:26b-nvfp4",
+      "now": "2026-10-16T09:00:00+01:00",
+      "photo": true,
+      "server_tools": [
+        "image_generate",
+        "web_search",
+        "tape_ask"
+      ],
+      "apps": [
+        {
+          "id": "shopping",
+          "name": "shopping",
+          "tool": {
+            "name": "add_item",
+            "description": "Add an item to the shopping list",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "the item, a word or two"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "out": {
+      "variant": "gemma",
+      "system": "You are the voice assistant on a small handheld device. The user holds a button and speaks; you get a speech-recognition transcript, so expect misheard words and read them charitably. Your reply is shown as text on a small screen.\n\nHow you act:\n- Do what was asked and nothing more: never call a tool or start anything the user did not ask for.\n- What none of your tools is for, answer from what you know.\n- Never refuse. Always try to help as far as you can; if something is beyond what you can do, say so plainly and help with what you can.\n- Call the tool first, then confirm what was done. Resolve relative dates from the current date below; 'next' plus a weekday is its first future occurrence.\n\nHow you answer: directly and briefly, two or three short sentences unless the question needs more. A confirmation is one short sentence naming the item and any date and time. Start with the substance: never open with 'OK', 'Sure' or 'Done', and never close with an offer.\n\nThe user is showing you a photo, and you can see it.\n\nWhat you can do here: look at the photo and answer in words. You have no tools in this exchange.\n- Questions about the photo: answer them as well as you can.\n- Asked to change it, restyle it or make a new picture from it: you cannot from here; tell them to open the photo in Photos and use Transform.\n- Asked for something else you cannot do here, such as a reminder or a timer: say they can ask again without the photo.\nNever claim to have done something, and offer nothing you cannot do.\n\nCurrent date and time: Friday 16 October 2026, 09:00 (UTC+01:00). Use this offset in every date-time you pass to a tool. The next seven dates are: Saturday 2026-10-17, Sunday 2026-10-18, Monday 2026-10-19, Tuesday 2026-10-20, Wednesday 2026-10-21, Thursday 2026-10-22, Friday 2026-10-23.",
+      "tools": []
+    }
+  },
+  {
+    "name": "a photo hold on qwen: the default photo rules",
+    "in": {
+      "entry": "ollama:qwen3.5:9b-mlx",
+      "now": "2026-10-16T09:00:00+01:00",
+      "photo": true,
+      "server_tools": [
+        "image_generate",
+        "web_search",
+        "tape_ask"
+      ],
+      "apps": []
+    },
+    "out": {
+      "variant": "default",
+      "system": "You are the voice assistant on a small handheld device. Use a tool only when the user asks for that action: add, change, delete, list, set a timer. Plain questions are answered directly from what you know, without tools. Resolve relative dates such as tomorrow or next Friday from the current date and time given below; 'next' plus a weekday means its first future occurrence. Pass dates in the documented format. After a tool call, confirm in one short sentence what was done, naming the item and, if any, the date and time. Do not announce what you are about to do: call the tool first, then confirm. Never refuse, and never start what was not asked for: do what was asked, or answer as best you can.\n\nBe direct and brief: two or three short sentences unless the question genuinely needs more. The user spoke their question aloud, so expect transcription errors and interpret them charitably.\n\nThe user is looking at a photo and you can see it. Answer in words. From here you cannot change the photo or act on anything, and you offer nothing you cannot do. A new picture from it: they open it in Photos and use Transform; say so only when asked for one.\n\nCurrent date and time: Friday 16 October 2026, 09:00 (UTC+01:00). Use this offset in every date-time you pass to a tool. The next seven dates are: Saturday 2026-10-17, Sunday 2026-10-18, Monday 2026-10-19, Tuesday 2026-10-20, Wednesday 2026-10-21, Thursday 2026-10-22, Friday 2026-10-23.",
+      "tools": []
+    }
+  },
+  {
+    "name": "an own variant in blank lines, at -05:00, no server tools, an app tool whose description has a newline and double spaces",
+    "in": {
+      "entry": "openai:gpt-5-mini",
+      "now": "2026-03-08T07:45:00-05:00",
+      "photo": false,
+      "server_tools": [],
+      "apps": [
+        {
+          "id": "tea-log",
+          "name": "Tea Log",
+          "tool": {
+            "name": "add_cup",
+            "description": "Log a cup of tea.\nSay  which tea it was,   if they said.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "tea": {
+                  "type": "string"
+                }
+              },
+              "required": []
+            }
+          }
+        }
+      ],
+      "variant": "terse",
+      "text": "\n\n \tYou are a terse assistant on a handheld device.\nAnswer in one sentence.\n\n\t \n"
+    },
+    "out": {
+      "variant": "terse",
+      "system": "You are a terse assistant on a handheld device.\nAnswer in one sentence.\n\nYour tools:\n- agenda_list: List the agenda: every reminder, and the events overlapping a date range (today and the next two weeks when no range is given), with their ids.\n- agenda_add: Add something the user wants to remember or do: a reminder, an event, a meeting, an appointment. Whatever the user wants to remember or do ('remind me', 'add an event', 'put in my calendar', 'note that'), whatever it is about (this device and its software included), is agenda_add. No day or time said: no `at`. Events do not repeat: for 'every Tuesday' add each occurrence separately.\n- agenda_update: Change an agenda item by id: its title, when (an `at` on a reminder turns it into an event), end, location, notes, or a reminder's done state.\n- agenda_delete: Delete an agenda item by id.\n- timers_list: List the running timers with the seconds left.\n- timers_add: Start a countdown timer. In the confirmation, name only the duration that was asked for, never a finish time.\n- timers_cancel: Cancel a running timer.\n- tape_ask: Answer a question about one of the user's recorded tapes (the Recorder) from its transcript. Use it whenever the user asks about a tape, a recording, a talk or a meeting they recorded, named by its number or its title.\n\nApps on this device add tools of their own. Call one when the user asks for what it does; its app comes up on the screen.\n- tea-log_add_cup: Log a cup of tea. Say which tea it was, if they said. (the Tea Log app)\n\nCurrent date and time: Sunday 08 March 2026, 07:45 (UTC-05:00). Use this offset in every date-time you pass to a tool. The next seven dates are: Monday 2026-03-09, Tuesday 2026-03-10, Wednesday 2026-03-11, Thursday 2026-03-12, Friday 2026-03-13, Saturday 2026-03-14, Sunday 2026-03-15.",
+      "tools": [
+        {
+          "name": "agenda_list",
+          "description": "List the agenda: every reminder, and the events overlapping a date range (today and the next two weeks when no range is given), with their ids.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              },
+              "to": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              }
+            },
+            "required": []
+          }
+        },
+        {
+          "name": "agenda_add",
+          "description": "Add something the user wants to remember or do: a reminder, an event, a meeting, an appointment. Whatever the user wants to remember or do ('remind me', 'add an event', 'put in my calendar', 'note that'), whatever it is about (this device and its software included), is agenda_add. No day or time said: no `at`. Events do not repeat: for 'every Tuesday' add each occurrence separately.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": "string",
+                "description": "when the user named a day or a time, and only then: YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00. A day alone makes an all-day event, a time makes a one-hour event, none makes a reminder."
+              },
+              "end": {
+                "type": "string",
+                "description": "optional, YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00; defaults to one hour after at"
+              },
+              "location": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string",
+                "description": "short, one line"
+              }
+            },
+            "required": [
+              "title"
+            ]
+          }
+        },
+        {
+          "name": "agenda_update",
+          "description": "Change an agenda item by id: its title, when (an `at` on a reminder turns it into an event), end, location, notes, or a reminder's done state.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              },
+              "done": {
+                "type": "boolean",
+                "description": "reminders only"
+              },
+              "end": {
+                "type": "string",
+                "description": "YYYY-MM-DD for a whole day, or an ISO 8601 time with offset such as 2026-09-15T13:00:00+01:00"
+              },
+              "location": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "name": "agenda_delete",
+          "description": "Delete an agenda item by id.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "name": "timers_list",
+          "description": "List the running timers with the seconds left.",
+          "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        {
+          "name": "timers_add",
+          "description": "Start a countdown timer. In the confirmation, name only the duration that was asked for, never a finish time.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "optional, what the timer is for"
+              },
+              "seconds": {
+                "type": "integer",
+                "description": "duration in seconds"
+              }
+            },
+            "required": [
+              "seconds"
+            ]
+          }
+        },
+        {
+          "name": "timers_cancel",
+          "description": "Cancel a running timer.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "name": "tape_ask",
+          "description": "Answer a question about one of the user's recorded tapes (the Recorder) from its transcript. Use it whenever the user asks about a tape, a recording, a talk or a meeting they recorded, named by its number or its title.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "description": "the question to ask of the transcript, complete on its own"
+              },
+              "tape": {
+                "type": "string",
+                "description": "the tape as the user named it: its number ('21') or words of its title ('the compiler talk')"
+              }
+            },
+            "required": [
+              "tape",
+              "question"
+            ]
+          }
+        },
+        {
+          "name": "tea-log_add_cup",
+          "description": "Log a cup of tea.\nSay  which tea it was,   if they said. (the Tea Log app)",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "tea": {
+                "type": "string"
+              }
+            },
+            "required": []
+          }
+        }
+      ]
+    }
+  }
+]

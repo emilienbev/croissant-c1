@@ -1,0 +1,1 @@
+{"candidates":[{"content":{"parts":[{"text":"I can't make a picture of that, but I can describe a lighthouse at dusk."}],"role":"model"},"finishReason":"STOP","index":0}],"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":18,"totalTokenCount":30},"modelVersion":"gemini-2.5-flash-image","responseId":"cXV4"}

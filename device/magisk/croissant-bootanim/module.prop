@@ -1,0 +1,6 @@
+id=croissant-bootanim
+name=Croissant boot animation
+version=1.0
+versionCode=1
+author=Croissant
+description=Replaces /product/media/bootanimation.zip with the Croissant logo and its loader, rendered by device/bootanim/loader.py.

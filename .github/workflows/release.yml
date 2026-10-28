@@ -1,0 +1,106 @@
+name: Release
+
+# Push a tag vX.Y.Z on the commit whose VERSION is X.Y.Z (android/README.md, "Releases").
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: The tag is the version
+        run: |
+          scripts/check-version.sh "$TAG"
+          echo "VERSION=$(cat VERSION)" >> "$GITHUB_ENV"
+
+      # Never a debug-signed release: without the key the run stops here.
+      - name: Release key
+        env:
+          CROISSANT_KEYSTORE_B64: ${{ secrets.CROISSANT_KEYSTORE_B64 }}
+          CROISSANT_KEYSTORE_PASSWORD: ${{ secrets.CROISSANT_KEYSTORE_PASSWORD }}
+          CROISSANT_KEY_ALIAS: ${{ secrets.CROISSANT_KEY_ALIAS }}
+          CROISSANT_KEY_PASSWORD: ${{ secrets.CROISSANT_KEY_PASSWORD }}
+        run: |
+          missing=
+          for n in CROISSANT_KEYSTORE_B64 CROISSANT_KEYSTORE_PASSWORD CROISSANT_KEY_ALIAS CROISSANT_KEY_PASSWORD; do
+            [ -n "${!n}" ] || missing="$missing $n"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::missing repository secrets:$missing (android/README.md, Releases). No release without the release key."
+            exit 1
+          fi
+          printf '%s' "$CROISSANT_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "CROISSANT_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - uses: ./.github/actions/android-setup
+      - name: Signed release build
+        working-directory: android
+        env:
+          CROISSANT_KEYSTORE_PASSWORD: ${{ secrets.CROISSANT_KEYSTORE_PASSWORD }}
+          CROISSANT_KEY_ALIAS: ${{ secrets.CROISSANT_KEY_ALIAS }}
+          CROISSANT_KEY_PASSWORD: ${{ secrets.CROISSANT_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
+      - name: Check the APK
+        run: |
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          certs=$("$BUILD_TOOLS/apksigner" verify --print-certs "$apk")
+          echo "$certs" | grep -E 'DN|SHA-256'
+          if echo "$certs" | grep -q 'CN=Android Debug'; then
+            echo "::error::the APK is signed with the debug key"
+            exit 1
+          fi
+          badging=$("$BUILD_TOOLS/aapt2" dump badging "$apk" | head -1)
+          echo "$badging"
+          echo "$badging" | grep -q "versionName='$VERSION'"
+
+      - name: ortload
+        run: device/offline-models/build-ortload.sh "$RUNNER_TEMP/ortload"
+
+      - name: Assets
+        run: |
+          mkdir dist
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/croissant-$VERSION.apk"
+          cp "$RUNNER_TEMP/ortload/ortload" dist/ortload-arm64
+          cd dist
+          sha256sum "croissant-$VERSION.apk" > "croissant-$VERSION.apk.sha256"
+          sha256sum ortload-arm64 > ortload-arm64.sha256
+          cat ./*.sha256
+
+      # The CLI, installed with dist/install.sh (README.md, Install): beside the APK in dist/.
+      - name: CLI
+        env:
+          CROISSANT_REPO: ${{ github.repository }}
+        run: |
+          scripts/build-cli.sh dist
+          CROISSANT_DIST=dist CROISSANT_HOME="$RUNNER_TEMP/croissant" CROISSANT_NO_MODIFY_PATH=1 sh dist/install.sh
+          test "$("$RUNNER_TEMP/croissant/bin/croissant" --version)" = "croissant $VERSION"
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # actions/checkout leaves an annotated tag without its message; fetch the tag itself.
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          if [ "$(git cat-file -t "$TAG")" = tag ]; then
+            git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "$TAG" > "$RUNNER_TEMP/notes.md"
+          fi
+          if [ -s "$RUNNER_TEMP/notes.md" ] && grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+            notes=(--notes-file "$RUNNER_TEMP/notes.md")
+          else
+            notes=(--generate-notes)
+          fi
+          gh release create "$TAG" dist/* --verify-tag --title "Croissant $VERSION" "${notes[@]}"
+
+      - name: Forget the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"

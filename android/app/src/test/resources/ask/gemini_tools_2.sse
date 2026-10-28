@@ -1,0 +1,2 @@
+data: {"candidates": [{"content": {"parts": [{"text": "Tea timer set for five minutes.","thoughtSignature": "Cp0BAdHtim8xYz"}],"role": "model"},"finishReason": "STOP","index": 0}],"usageMetadata": {"promptTokenCount": 3560,"candidatesTokenCount": 8,"totalTokenCount": 3568},"modelVersion": "gemini-3-flash-preview","responseId": "vDzwaN6bD4CQz7IPv7m5gAo"}
+

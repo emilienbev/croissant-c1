@@ -1,0 +1,20 @@
+# Rabbit R1 scroll wheel -> app scroll keys.
+#
+# The wheel is a Hall-effect encoder reported by the input device "och1970_holl_key"
+# (/dev/input/event2) as scancodes 103 (KEY_UP) and 108 (KEY_DOWN). Generic.kl maps
+# those to DPAD_UP / DPAD_DOWN, which the framework treats as keyboard navigation:
+# after any touch the first press is swallowed just to leave touch mode, and Compose
+# then walks focus through every clickable row (with the focus sound) before the key
+# reaches the app. Verified on the device 2026-09-14: a direction change cost five or
+# six dead ticks, and the first tick after a tap was always lost.
+#
+# F11 (up) and F10 (down) mean nothing to the framework or to any app here, so every
+# detent reaches MainActivity.dispatchKeyEvent, which turns them into wheel ticks.
+# The wheel is not a wake source (no WAKE), same as with Generic.kl.
+#
+# Installed at /data/system/devices/keylayout/och1970_holl_key.kl by install.sh.
+# Consequence: outside our app the wheel no longer acts as up/down; the bootloader
+# still reads it as volume (that is below Android and unaffected).
+
+key 103   F11
+key 108   F10

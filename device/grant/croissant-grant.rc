@@ -1,0 +1,14 @@
+# Magisk overlay.d, added to the boot ramdisk when the installer patches it
+# (installer/croissant/magisk.py): magiskinit appends this to init.rc and replaces
+# ${MAGISKTMP} with its tmpfs, where overlay.d/sbin/croissant-grant.sh is copied. Once
+# Android has booted, the script gives the adb shell root for good (see it).
+
+service croissant-grant /system/bin/sh ${MAGISKTMP}/croissant-grant.sh ${MAGISKTMP}
+    user root
+    group root
+    seclabel u:r:magisk:s0
+    oneshot
+    disabled
+
+on property:sys.boot_completed=1
+    start croissant-grant

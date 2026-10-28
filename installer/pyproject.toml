@@ -1,0 +1,28 @@
+[project]
+name = "croissant"
+version = "0.1.0"
+description = "Put Croissant on a Rabbit R1 whose bootloader rabbit has allowed to unlock"
+requires-python = ">=3.12"
+dependencies = [
+    "pyserial>=3.5",   # the preloader's FASTBOOT handshake (scripts/enter-fastboot.py)
+    "pillow>=10.1",    # the boot logo and animation from the device name
+    "lz4>=4.3",        # reading the boot ramdisk, to check Magisk's patch
+    "rich>=13",        # the terminal output: steps, results, progress bars
+    "questionary>=2",  # the questions: arrow-key choices, checkboxes, text
+    "segno>=1.6",      # an Atelier app's QR code (croissant atelier new, qr)
+]
+
+[project.scripts]
+croissant = "croissant.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["croissant"]
+
+[dependency-groups]
+dev = [
+    "zxing-cpp>=2.2",  # the tests read the QR codes as the C1 does (zxing-cpp there too)
+]

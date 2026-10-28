@@ -1,0 +1,3 @@
+#!/system/bin/sh
+# Convenience wrapper: tailscaled uses a non-default socket path on this device.
+exec /data/adb/tailscale/tailscale --socket=/data/adb/tailscale/tailscaled.sock "$@"

@@ -1,0 +1,2 @@
+data: {"candidates": [{"content": {"parts": [{"functionCall": {"name": "timers_add","args": {"seconds": 300,"label": "tea"}},"thoughtSignature": "EuYDCuMDAdHtim9fJ0v4sB7N0hQe3o2kq4WZ0n6x2cR5yV8uT1sQ3pL7mA9bD2eF4gH6iJ8kL0mN2oP4qR6sT8uV0wX2yZ4"},{"functionCall": {"name": "timers_list","args": {}}}],"role": "model"},"finishReason": "STOP","index": 0}],"usageMetadata": {"promptTokenCount": 3474,"candidatesTokenCount": 24,"totalTokenCount": 3601,"thoughtsTokenCount": 103},"modelVersion": "gemini-3-flash-preview","responseId": "uDzwaIrqA9mFz7IPqY2RyQs"}
+

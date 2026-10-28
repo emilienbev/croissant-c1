@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Croissant providers</title>
+<style>
+  @font-face { font-family: "Power Grotesk"; src: url("/settings/font/regular") format("truetype"); font-weight: 400; }
+  @font-face { font-family: "Power Grotesk"; src: url("/settings/font/light") format("truetype"); font-weight: 300; }
+  :root {
+    --bg: #0B0B0C; --surface: #161618; --high: #1E1E21; --line: #2A2A2E;
+    --ink: #F2F2F3; --muted: #8E8A87; --accent: #FF4F00; --danger: #E5484D;
+    --r: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font: 400 16px/1.4 "Power Grotesk", ui-sans-serif, system-ui, sans-serif;
+    padding: 20px 16px calc(96px + env(safe-area-inset-bottom));
+    max-width: 640px; margin: 0 auto;
+  }
+  h1 { font-weight: 300; font-size: 34px; margin: 4px 0 2px; letter-spacing: .01em; }
+  .intro { color: var(--muted); font-size: 15px; margin: 6px 0 20px; }
+  .where { color: var(--muted); font-size: 13px; margin-top: 32px; word-break: break-all; }
+  .back { padding-left: 0; margin-bottom: 4px; }
+  button.choice { display: block; width: 100%; text-align: left; background: var(--surface);
+                  border-radius: var(--r); padding: 14px; margin: 0 0 10px; }
+  .card { background: var(--surface); border-radius: var(--r); padding: 14px; margin: 0 0 10px; }
+  label { display: block; color: var(--muted); font-size: 13px; margin: 10px 0 4px; }
+  label:first-child { margin-top: 0; }
+  input, select {
+    width: 100%; font: inherit; color: var(--ink); background: var(--high);
+    border: 1px solid transparent; border-radius: 10px; padding: 10px 12px; outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  button {
+    font: inherit; color: var(--ink); background: var(--high); border: 0;
+    border-radius: 10px; padding: 10px 14px; cursor: pointer; white-space: nowrap;
+  }
+  button.accent { background: var(--accent); color: #0B0B0C; }
+  button.quiet { background: none; color: var(--muted); padding: 10px 8px; }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: .4; }
+  .actions { display: flex; gap: 4px; justify-content: flex-end; margin-top: 10px; }
+  .provider .title { font-size: 17px; }
+  .provider .note { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .provider .note.ok { color: var(--ink); }
+  .provider .note.bad { color: var(--danger); }
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; background: rgba(11, 11, 12, .94);
+    backdrop-filter: blur(8px); border-top: 1px solid var(--line);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+  .bar > div { max-width: 640px; margin: 0 auto; display: flex; gap: 12px; align-items: center; }
+  .status { flex: 1; color: var(--muted); font-size: 14px; }
+  .status.bad { color: var(--danger); }
+  .bar button { padding: 12px 22px; }
+</style>
+</head>
+<body>
+<main id="main"></main>
+<div class="where" id="where"></div>
+<div class="bar"><div><span class="status" id="status">Connecting</span>
+  <button class="accent" id="save" disabled>Save</button></div></div>
+
+<script>
+"use strict";
+// The R1's words for its four slots, as the server names them.
+const SLOTS = [["chat", "chat"], ["stt", "speech"], ["text_to_image", "pictures"], ["image_to_image", "transform"]];
+
+let st = null;          // the last state from the server
+let file = null;        // what is being edited: {providers: {...}}
+let dirty = false;
+let justSaved = false;
+// A key just saved is tried at once by listing its provider's models: what that said, by provider.
+const checks = {};
+let toCheck = [];
+let checking = null;
+const asked = new Set(); // providers listed by this page already, so a failure is not asked again
+let listing = null;      // the provider being listed
+let testing = null;      // the provider being added whose key is being tried (Test)
+let adding = false;      // the second view: the providers that can be added
+let mainY = 0;           // where the first view was, to come back to
+const $ = (id) => document.getElementById(id);
+
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "on") for (const [ev, f] of Object.entries(v)) e.addEventListener(ev, f);
+    else if (k === "class") e.className = v;
+    else if (v !== undefined && v !== null && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false)
+    e.append(k instanceof Node ? k : document.createTextNode(k));
+  return e;
+}
+
+function status(text, bad = false) { $("status").textContent = text; $("status").className = "status" + (bad ? " bad" : ""); }
+function touch() { dirty = true; $("save").disabled = false; status("Not saved"); }
+
+// ---- the socket ----------------------------------------------------------
+let ws;
+function connect() {
+  ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/config`);
+  ws.onopen = () => ws.send(JSON.stringify({ type: "load" }));
+  // What was asked on a socket is answered on it: gone with it, nothing is waited for.
+  ws.onclose = () => { listing = checking = testing = null; status("Disconnected, retrying", true); setTimeout(connect, 2000); };
+  ws.onmessage = (ev) => {
+    const m = JSON.parse(ev.data);
+    if (m.type === "state") {
+      // One being added stays as it is, its key unsaved, until its Test saves it.
+      const being = file ? Object.entries(file.providers).filter(([pid]) => isNew(pid)) : [];
+      st = m;
+      if (!dirty) {
+        file = fromState(m);
+        for (const [pid, s] of being) if (fresh(pid)) file.providers[pid] = s;
+        status(justSaved ? "Saved. The R1 sees it on its next look." : "Up to date");
+      }
+      // The keys just saved are tried first; nothing else is listed meanwhile.
+      if (justSaved) { justSaved = false; checkNext(); }
+      render();
+    } else if (m.type === "saved") {
+      dirty = false; justSaved = true; $("save").disabled = true;
+    } else if (m.type === "models") {
+      st.listed[m.provider] = m.listed;
+      if (m.provider === listing) listing = null;
+      if (checking === m.provider) {
+        checks[checking] = { ok: true, text: "Key saved and working" };
+        status(`Saved. ${providerInfo(checking).title} answers.`);
+        checking = null; render(); checkNext();
+      } else {
+        render(); status(`${providerInfo(m.provider).title}: ${counts(m.provider)}`);
+      }
+    } else if (m.type === "added") {
+      // Saved by its Test, after the state that has it; its key is the file's now.
+      if (file.providers[m.provider]) file.providers[m.provider].key = null;
+      checks[m.provider] = { ok: true, text: "Key works, saved" };
+      if (testing === m.provider) testing = null;
+      render(); if (!dirty) status("Saved. The R1 sees it on its next look.");
+    } else if (m.type === "error") {
+      // A listing's error names its provider; a save's does not, and nothing was saved to try.
+      if (!m.provider || m.provider === listing) listing = null;
+      if (m.provider && m.provider === testing) {
+        // Said on its card; nothing was saved, so the bar has nothing to add.
+        checks[testing] = { ok: false, text: `Refused: ${m.message}` }; testing = null; render();
+        return;
+      }
+      if (m.provider && m.provider === checking) {
+        checks[checking] = { ok: false, text: `Key saved, refused: ${m.message}` }; checking = null; render(); checkNext();
+      } else {
+        if (!m.provider) toCheck = [];
+        render();
+      }
+      status(m.message, true);
+    }
+  };
+}
+
+function fromState(s) {
+  const f = { providers: {} };
+  for (const [pid, spec] of Object.entries(s.file_providers)) f.providers[pid] = { ...spec, key: null };
+  return f;
+}
+
+// ---- providers ---------------------------------------------------------------
+function providerInfo(pid) { return st.providers[pid] || { title: pid, kind: file.providers[pid]?.kind, preset: false }; }
+function spec(pid) { return file.providers[pid] || (file.providers[pid] = { key: null }); }
+
+// Set up here: Ollama (always there), and any in the file, with a key from the environment,
+// or just added. The rest are offered by Add a provider.
+function configured(pid) {
+  if (pid === "local") return false;
+  return pid === "ollama" || pid in file.providers || !!st.providers[pid]?.key_from;
+}
+// One that can answer: needing no key, or with one (saved or just pasted).
+function ready(pid) {
+  const p = providerInfo(pid);
+  return !p.preset || !p.key_env.length || !!p.key_from || !!file.providers[pid]?.key;
+}
+function allIds() { return [...new Set([...Object.keys(st.providers), ...Object.keys(file.providers)])]; }
+// Being added: not in the file, nor set up by the environment (Ollama is always there). Its
+// Test tries it and saves it alone; Save is for the providers already there.
+function fresh(pid) { return pid !== "ollama" && !st.providers[pid]?.in_file && !st.providers[pid]?.key_from; }
+function isNew(pid) { return pid in file.providers && fresh(pid); }
+// What a Test needs: a hosted preset its key, a server of your own its address.
+function canTry(pid) {
+  const p = providerInfo(pid), s = file.providers[pid] || {};
+  return p.preset ? !p.key_env.length || !!s.key : !!s.url;
+}
+function test(pid) {
+  testing = pid; delete checks[pid]; render();
+  ws.send(JSON.stringify({ type: "add", provider: { id: pid, ...file.providers[pid] } }));
+}
+
+// How many models it offers the R1 for each slot, as it last listed them, and whether its key is on the free tier.
+function counts(pid) {
+  const l = st.listed[pid];
+  if (!l) return listing === pid ? "Listing its models" : "Not listed yet";
+  const m = l.models;
+  const said = SLOTS.filter(([slot]) => (m[slot] || []).length).map(([slot, word]) => `${m[slot].length} ${word}`);
+  return (said.length ? said.join(", ") : "Nothing the R1 can use") + (l.free ? ", on the free tier" : "");
+}
+
+function listModels(pid) {
+  const p = providerInfo(pid), s = file.providers[pid] || {};
+  asked.add(pid); listing = pid;
+  status(`Listing ${p.title}'s models`);
+  ws.send(JSON.stringify({ type: "models", provider: {
+    id: pid, kind: s.kind || p.kind, url: s.url || null, title: s.title || null, key: s.key || null } }));
+}
+
+function checkNext() {
+  checking = toCheck.shift() || null;
+  if (checking) listModels(checking);
+}
+
+function keyNote(pid) {
+  const p = providerInfo(pid), s = file.providers[pid];
+  if (isNew(pid)) return testing === pid ? (s?.key ? "Trying the key" : "Trying it") : checks[pid] ? checks[pid].text : "Not added yet";
+  if (s && s.key === "") return "Key will be removed";
+  if (s && s.key) return "New key, not saved yet";
+  if (checks[pid]) return checks[pid].text;
+  if (checking === pid) return "Key saved, trying it";
+  if (p.key_from === "file") return `Key saved${p.key_hint ? ", ends " + p.key_hint : ""}`;
+  if (p.key_from) return `Key from ${p.key_from}`;
+  return p.key_env && p.key_env.length ? `No key (or set ${p.key_env.join(" or ")})` : "No key";
+}
+
+function providerCard(pid) {
+  const p = providerInfo(pid), s = file.providers[pid];
+  const custom = !p.preset;
+  const needsKey = p.kind === "openai" || p.kind === "gemini";
+  const added = isNew(pid);
+  const card = el("div", { class: "card provider" },
+    el("div", { class: "title" }, custom ? (s?.title || pid) : p.title),
+    needsKey ? el("div", { class: "note" + (checks[pid] && (!s?.key || added) ? (checks[pid].ok ? " ok" : " bad") : "") }, keyNote(pid)) : null,
+    ready(pid) && !added ? el("div", { class: "note" }, counts(pid)) : null);
+  // One being added is its card's own until its Test; the rest wait for Save.
+  const edited = () => {
+    if (!isNew(pid)) touch();
+    const t = card.querySelector(".test");
+    if (t) t.disabled = testing !== null || !canTry(pid);
+  };
+  if (custom) {
+    card.append(
+      el("label", {}, "Name"),
+      el("input", { value: s.title || "", placeholder: pid, on: { input: (e) => { s.title = e.target.value; edited(); } } }));
+  }
+  if (custom || p.kind === "ollama" || p.preset_url?.startsWith("http://127.")) {
+    card.append(
+      el("label", {}, "Address"),
+      el("input", { value: s?.url || "", placeholder: p.preset_url || (p.kind === "ollama" ? "http://127.0.0.1:11434" : "https://.../v1"),
+                    inputmode: "url", autocapitalize: "off", spellcheck: "false",
+                    on: { input: (e) => { spec(pid).url = e.target.value || undefined; edited(); } } }));
+  }
+  if (needsKey) {
+    card.append(
+      el("label", {}, "Key"),
+      el("input", { type: "password", value: s?.key || "",
+                    placeholder: p.key_from === "file" ? `Saved${p.key_hint ? ", ends " + p.key_hint : ""}; paste another to replace it`
+                      : p.key_from ? `From ${p.key_from}; paste one to use instead` : "Paste the key",
+                    autocomplete: "off", autocapitalize: "off", spellcheck: "false",
+                    on: { input: (e) => { spec(pid).key = e.target.value || null; delete checks[pid]; edited();
+                                          const note = card.querySelector(".note");
+                                          note.className = "note"; note.textContent = keyNote(pid); },
+                          // Not one being added: its Test would move under the finger leaving the field.
+                          change: () => { if (!isNew(pid)) render(); } } }));
+  }
+  const acts = el("div", { class: "actions" });
+  if (added)
+    acts.append(el("button", { class: "test", disabled: testing !== null || !canTry(pid), on: { click: () => test(pid) } }, "Test"));
+  else if (ready(pid))
+    acts.append(el("button", { class: "quiet", disabled: listing !== null, on: { click: () => listModels(pid) } }, "Refresh"));
+  // Removing one takes its key with it; one being added was never saved.
+  if (pid !== "ollama" && pid in file.providers)
+    acts.append(el("button", { class: "quiet danger", disabled: testing === pid,
+                               on: { click: () => { delete file.providers[pid]; if (!added) touch(); render(); } } }, "Remove"));
+  if (acts.children.length) card.append(acts);
+  card.dataset.pid = pid;
+  return card;
+}
+
+// ---- the page ------------------------------------------------------------------
+function render() {
+  if (!st || !file) return;
+  $("where").textContent = st.path ? st.path : "";
+  if (adding) return renderAdd();
+  const main = $("main");
+  const y = window.scrollY;
+  const ids = allIds().filter(configured);
+  main.replaceChildren(el("h1", {}, "Providers"),
+    el("p", { class: "intro" }, "The providers this server can reach. The R1 picks which of their models to use, "
+      + "for chat, speech, pictures and transform, in Settings > Server."),
+    ...ids.map(providerCard),
+    el("button", { on: { click: openAdd } }, "Add a provider"));
+  window.scrollTo(0, y);
+  // A saved provider never listed is listed once, one at a time; Refresh lists it again. One
+  // being added waits for its Test.
+  const saved = (pid) => pid === "ollama" || st.providers[pid]?.in_file || !!st.providers[pid]?.key_from;
+  const next = ids.find((pid) => saved(pid) && ready(pid) && !st.listed[pid] && !asked.has(pid) && !file.providers[pid]?.key);
+  if (next && listing === null && checking === null) listModels(next);
+}
+
+// The second view: every provider not set up yet, and one of your own; a tap adds it and goes
+// back to its card, its first field ready.
+function renderAdd() {
+  const main = $("main");
+  const pick = (pid) => {
+    if (!file.providers[pid]) file.providers[pid] = { key: null };
+    closeAdd(); history.back();
+    const card = document.querySelector(`[data-pid="${CSS.escape(pid)}"]`);
+    if (card) { card.scrollIntoView({ block: "center" }); card.querySelector("input")?.focus(); }
+  };
+  const own = () => {
+    let n = 1, pid = "custom";
+    while (pid in file.providers || pid in st.providers) pid = `custom-${++n}`;
+    file.providers[pid] = { kind: "openai", url: "", title: "", key: null };
+    pick(pid);
+  };
+  main.replaceChildren(
+    el("button", { class: "quiet back", on: { click: () => history.back() } }, "‹ Providers"),
+    el("h1", {}, "Add a provider"),
+    ...allIds().filter((pid) => pid !== "local" && !configured(pid) && providerInfo(pid).preset).map((pid) => {
+      const p = providerInfo(pid);
+      return el("button", { class: "choice provider", on: { click: () => pick(pid) } },
+        el("div", { class: "title" }, p.title),
+        el("div", { class: "note" }, p.key_env.length ? "Paste a key" : "No key, on this machine"));
+    }),
+    el("button", { class: "choice provider", on: { click: own } },
+      el("div", { class: "title" }, "Another OpenAI-compatible server"),
+      el("div", { class: "note" }, "Its address, and a key if it needs one")));
+}
+function openAdd() { mainY = window.scrollY; adding = true; history.pushState({ adding: true }, ""); render(); window.scrollTo(0, 0); }
+function closeAdd() { adding = false; render(); window.scrollTo(0, mainY); }
+// The phone's own back leaves the second view; the page keeps its scroll, not the browser.
+history.scrollRestoration = "manual";
+window.addEventListener("popstate", () => { if (adding) closeAdd(); });
+
+// The providers already there; one being added is saved by its Test.
+$("save").onclick = () => {
+  const there = Object.fromEntries(Object.entries(file.providers).filter(([pid]) => !isNew(pid)));
+  toCheck = Object.keys(there).filter((pid) => there[pid].key);
+  status("Saving");
+  ws.send(JSON.stringify({ type: "save", file: { providers: there } }));
+};
+window.addEventListener("beforeunload", (ev) => { if (dirty) { ev.preventDefault(); ev.returnValue = ""; } });
+connect();
+</script>
+</body>
+</html>

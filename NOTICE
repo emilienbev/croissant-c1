@@ -1,0 +1,52 @@
+Croissant
+Copyright 2026 the Croissant contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE), except for the
+third-party parts below, which keep their own licences.
+
+android/lpac-jni/
+  An eSIM LPA library vendored for the app's eSIM page. See its README.md for the
+  exact sources and commits.
+  - The JNI wrapper (src/main/java, src/main/jni/lpac-jni) is from OpenEUICC's
+    lpac-jni, LGPL-2.1. Licence: android/lpac-jni/LICENSE.
+  - libeuicc (src/main/jni/lpac/euicc) is from lpac by ESTKME TECHNOLOGY LIMITED,
+    LGPL-2.1-only OR LicenseRef-ESTKME-Commercial; used here under LGPL-2.1-only.
+    Licences: src/main/jni/lpac/LICENSES/, src/main/jni/lpac/REUSE.toml.
+  - lpac's cjson-ext is MIT (src/main/jni/lpac/LICENSES/MIT.txt).
+  - euicc/sha256.c and sha256.h are Brad Conte's crypto-algorithms, CC0-1.0.
+  - cJSON (src/main/jni/cjson/cjson) by Dave Gamble and cJSON contributors, MIT.
+    Licence: src/main/jni/cjson/cjson/LICENSE.
+
+android/app/src/main/assets/sounds/, installer/croissant/sounds/, android/app/src/main/assets/metronome/
+  The interface sound packs and their demos, and the metronome's Tine, Chime and Bamboo,
+  rendered by sounds/earshot.py and sounds/metronome.py with
+  earshot (https://github.com/Leonxlnx/earshot) by Leon Lin, MIT: its bank of sounds
+  stored as code and its DSP. Three of the bank's sounds are models fitted from CC0
+  recordings on Freesound: Bamboo hit by michorvath (fs-386888), Keychron k10 keys by
+  Sadiquecat (fs-789628) and Switch Flip #1 by IanStarGem (fs-278205).
+
+android/app/src/main/assets/sounds/zen/, installer/croissant/sounds/zen.m4a
+  The Zen pack of uisfx (https://github.com/uisfx), the audio CC0, uisfx's code MIT;
+  written as a pack by sounds/zen.py.
+
+android/app/src/main/assets/lucide/
+  Lucide's icons (https://lucide.dev), release 1.57.0, as path data written by
+  scripts/lucide.py: the glyphs an Atelier app may name. ISC, with the parts that came
+  from Feather by Cole Bemis under MIT. Licence: android/app/src/main/assets/lucide/LICENSE.
+
+android/gradle/wrapper/, android/gradlew, android/gradlew.bat
+  The Gradle wrapper, Apache-2.0.
+
+scripts/enter-fastboot.py
+  A Python version of the "Enter Fastboot Mode" button of rabbit's official web
+  flash tool (https://rabbit-hmi-oss.github.io/flashing/). The mechanism, writing
+  "FASTBOOT" to the MediaTek preloader's serial port, is taken from that tool's
+  js/fastboot-ops.js.
+
+Not included: Power Grotesk, by Power Type Foundry. The app, the installer and the
+tools load the owner's own copy, downloaded by the owner.
+
+Not included: mtkclient (https://github.com/bkerler/mtkclient), by Bjoern Kerler and
+contributors, GPL-3.0. The installer downloads it at a pinned commit into its own
+environment in the user's cache, with libusb (LGPL-2.1) from PyPI's libusb-package, and
+runs it as a separate program to read the R1's stock boot image over the preloader.
