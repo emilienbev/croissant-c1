@@ -28,6 +28,26 @@ Croissant replaces the R1's software with a LineageOS 20 GSI rooted with Magisk,
   href="docs/features/settings.md"><img alt="Settings" src="docs/images/glyphs/settings.png" height="28"></a>
 </p>
 
+## Features
+
+Click any glyph above to see how that feature works.
+
+- <a href="docs/features/settings.md"><img alt="eSIM" src="docs/images/glyphs/esim.png" height="20" align="center"></a>
+  **eSIM, for data on the go.** With an eSIM card in the SIM slot, the C1 downloads your
+  operator's profile from its QR code, switches between profiles and turns mobile data on.
+  No phone or computer needed.
+- <a href="docs/features/atelier.md"><img alt="Atelier" src="docs/images/glyphs/atelier.png" height="20" align="center"></a>
+  **Atelier apps.** Small apps in the C1's own design, one JSON file and one JavaScript file,
+  written by you or an agent. Add one from GitHub by scanning its QR code. An app can give
+  Ask tools of its own, so "add eggs to my shopping list" works from any screen.
+- <a href="docs/features/agents.md"><img alt="Agents" src="docs/images/glyphs/agents.png" height="20" align="center"></a>
+  **Agents.** Claude Code, Codex and other coding agents running on your computer, driven
+  from the C1. Hold the side button to give one its next prompt, watch the reply and its
+  tool calls stream in, and allow or reject each step it asks about.
+
+It's all open source and made to be changed. [Write your own app](docs/atelier.md),
+[draw your own design](#designs), or fork the whole thing and change whatever you like.
+
 ## What you need
 
 - An unlocked Rabbit R1.
