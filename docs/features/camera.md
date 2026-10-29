@@ -7,8 +7,8 @@
 
 Take a photo, or ask about what the camera sees.
 
-- Turn the wheel on Home to camera and tap it, or press the side button twice from anywhere. Twice again closes it.
-- The view fills the screen. Press the side button or tap the shutter to take a photo. A double tap on the view turns the camera to face you, and back.
-- The shot stays on screen. Hold the side button and ask about it: "what clouds are these?" The answer reads under it.
-- The tick keeps the photo, with what you asked about it. Retake throws it away.
-- The key at the bottom left opens Photos. Turning the wheel up leaves the camera.
+- Two presses of the side button open it from anywhere, and two more close it.
+- The side button or the shutter takes the photo. A double tap on the view flips to the front camera and back.
+- The shot stays on screen. Hold the side button and ask about it: "what clouds are these?"
+- The tick keeps the photo with your question. Retake throws it away.
+- The bottom-left key opens Photos. Wheel up leaves the camera.

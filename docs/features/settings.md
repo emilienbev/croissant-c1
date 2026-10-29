@@ -5,11 +5,11 @@
   <img alt="The device page: sound at 60 in orange, display at 80, tones on kalimba and battery, with setup apart under them" src="../images/features/settings-device.png" width="300">
 </p>
 
-Where the C1's network, server, models and device are set.
+Network, server, models and the device.
 
-- Turn the wheel on Home to settings and tap it. The wheel moves down the rows, a tap opens one, and most rows show what they are set to.
-- Join a network in wi-fi, with its password or by scanning its code. Add and switch eSIM profiles in esim, and sign in to your tailnet in tailscale.
-- In server, see the computer the C1 talks to and what runs on it. A tap on its card picks another.
-- In ask, pick Ask's model and prompt, add providers, and pick the models for speech and pictures. In usage, see what they cost over the last 30 days.
-- In device, set sound, display, tones and battery. Its setup row runs the first setup again without wiping anything.
-- In update, install a new version of Croissant. In power, sleep, restart or power off the C1.
+- **wi-fi** joins a network, with its password or by scanning its code.
+- **esim** adds and switches profiles. **tailscale** signs in to your tailnet.
+- **server** shows the computer the C1 talks to and what runs on it. Tap its card to pick another.
+- **ask** picks Ask's model and prompt, providers, and the speech and picture models. **usage** shows what they cost over 30 days.
+- **device** has sound, display, tones and battery. Its setup row runs the first setup again without wiping anything.
+- **update** installs a new version of Croissant. **power** sleeps, restarts or powers off the C1.

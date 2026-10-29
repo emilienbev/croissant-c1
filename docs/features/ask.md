@@ -5,11 +5,22 @@
   <img alt="History: today's four conversations and yesterday's three, each its first question cut to fit and the time on the right, the pasta timer one in orange, a camera mark on one asked with a photo" src="../images/features/ask-history.png" width="300">
 </p>
 
-A chat model you talk to, which answers as text and can act on the C1 for you.
+A chat model on the side button. It answers in text and can do things on the C1 for you.
 
-- Hold the side button on any screen and talk, or turn the wheel on Home to ask and tap it.
-- The croissant listens while you hold and thinks when you let go. Your question sits on the right in orange, the answer under it in white. The wheel scrolls back through it.
-- Hold again to follow up in the same conversation. The plus key starts a new one.
-- Ask can add, change and delete reminders and events, start and cancel timers, and answer questions about a recorded tape. With the server it can also search the web and make a picture for Photos. Each call shows as a line with its feature's glyph. Atelier apps add tools of their own.
-- The history key lists past conversations by day. Tap one to open it and carry on, or press and hold to pick some and delete them.
-- Pick the chat model in Settings > ask, from Ollama on your own machine or a cloud provider with your own key.
+- Hold the side button anywhere and talk. The croissant listens while you hold and answers when you let go.
+- Your words sit on the right in orange, the answer under them in white. The wheel scrolls back.
+- Hold again to follow up. The plus key starts a new chat.
+- The history key lists past chats by day. Tap one to carry on, or press and hold to pick some and delete them.
+- The model is set in Settings > ask, from Ollama on your machine or a cloud provider with your own key.
+
+Ask acts through tools, each call shown as a line with its feature's glyph.
+
+| Tool | What it does |
+|---|---|
+| `agenda_list` `agenda_add` `agenda_update` `agenda_delete` | Reads and changes [reminders](reminders.md) and [events](calendar.md) |
+| `timers_list` `timers_add` `timers_cancel` | Lists, starts and cancels [timers](timers.md) |
+| `tape_ask` | Answers from a [tape](recorder.md)'s transcript |
+| `web_search` | Searches the web, on the server |
+| `image_generate` | Makes a picture for [Photos](photos.md), on the server |
+
+[Atelier](atelier.md) apps add tools of their own.
