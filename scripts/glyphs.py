@@ -3,7 +3,8 @@
 Draws docs/images/glyphs/, the README's row of the features round the scroll wheel: one
 disc a place, in Beam's order, each in its hue with its glyph in black. Each place is its
 own image, named for it, so the README can link each glyph to its page. Each carries half
-the gap on both sides, so the images set side by side read as one row.
+the gap on both sides, so the images set side by side read as one row. The discs in
+EXTRA follow, drawn the same way, for the README's text.
 
     uv run --with pillow python scripts/glyphs.py
 
@@ -37,6 +38,10 @@ SCALE = 2
 DISC = 46 * SCALE
 GAP = 7 * SCALE
 
+# Discs beyond the row, for a feature inside a place: each its file name, the place whose
+# hue it takes and its glyph in ui/Icons.kt.
+EXTRA = [("esim", "Settings", "Sim")]
+
 
 # ---- the app's own sources ------------------------------------------------------------
 
@@ -60,6 +65,13 @@ def glyph_names() -> dict[str, str]:
     """The glyph each feature carries (ui/Feature.kt's `glyph`)."""
     body = (UI / "Feature.kt").read_text()
     return dict(re.findall(r"^            (\w+) -> Glyphs\.(\w+)$", body, re.M))
+
+
+def discs() -> list[tuple[str, str, str]]:
+    """Every disc to draw, each its file name, its hue and its glyph: the row's places, then EXTRA."""
+    hue, named = hues(), glyph_names()
+    row = [(f.lower(), hue[f], named[f]) for f in places()]
+    return row + [(name, hue[place], glyph) for name, place, glyph in EXTRA]
 
 
 # ---- ui/Icons.kt, as the Sheet draws it -------------------------------------------------
@@ -168,19 +180,18 @@ def value(arg: str) -> str:
 # ---- the row ----------------------------------------------------------------------------
 
 
-def svg() -> str:
+def svg(row: list[tuple[str, str, str]]) -> str:
     icons = (UI / "Icons.kt").read_text()
-    hue, named, row = hues(), glyph_names(), places()
     width = len(row) * DISC + (len(row) - 1) * GAP
     # The side wheel's own ratio (beam/SideWheel.kt): the glyph box is the disc's radius.
     box = DISC / 2
     k = box / 24
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{DISC}" viewBox="0 0 {width} {DISC}">']
-    for i, f in enumerate(row):
+    for i, (_, hue, glyph) in enumerate(row):
         x = i * (DISC + GAP)
-        parts.append(f'<circle cx="{x + DISC / 2}" cy="{DISC / 2}" r="{DISC / 2}" fill="{hue[f]}"/>')
+        parts.append(f'<circle cx="{x + DISC / 2}" cy="{DISC / 2}" r="{DISC / 2}" fill="{hue}"/>')
         parts.append(f'<g transform="translate({x + (DISC - box) / 2} {(DISC - box) / 2}) scale({k})">')
-        for how, d, w, odd in shapes(named[f], icons):
+        for how, d, w, odd in shapes(glyph, icons):
             if how == "fill":
                 rule = ' fill-rule="evenodd"' if odd else ""
                 parts.append(f'<path d="{d}" fill="#000"{rule}/>')
@@ -213,8 +224,8 @@ def chrome() -> str:
     raise SystemExit("no headless Chrome here: install one, or name it with CHROME=/path/to/it")
 
 
-def shoot(source: str, row: list[str], to: Path) -> None:
-    """The SVG as a PNG, on nothing, trimmed to the row and cut into one image a place."""
+def shoot(source: str, row: list[tuple[str, str, str]], to: Path) -> None:
+    """The SVG as a PNG, on nothing, trimmed to the row and cut into one image a disc."""
     from PIL import Image
 
     work = Path(tempfile.mkdtemp(prefix="croissant-glyphs-"))
@@ -232,19 +243,19 @@ def shoot(source: str, row: list[str], to: Path) -> None:
     if strip.size != (expected, DISC):
         raise SystemExit(f"the row came out {strip.size[0]}x{strip.size[1]}, not {expected}x{DISC}: {shot}")
     to.mkdir(parents=True, exist_ok=True)
-    for i, f in enumerate(row):
+    for i, (name, _, _) in enumerate(row):
         cell = Image.new("RGBA", (DISC + GAP, DISC), (0, 0, 0, 0))
         x = i * (DISC + GAP)
         cell.paste(strip.crop((x, 0, x + DISC, DISC)), (GAP // 2, 0))
-        cell.save(to / f"{f.lower()}.png", optimize=True)
+        cell.save(to / f"{name}.png", optimize=True)
     print(f"{to.relative_to(ROOT)}/: {len(row)} images, {DISC + GAP}x{DISC} each")
     print(f"the svg it came from: {page_file}")
 
 
 def main() -> int:
-    row = places()
-    print("the row: " + ", ".join(f.lower() for f in row))
-    shoot(svg(), row, OUT)
+    row = discs()
+    print("the discs: " + ", ".join(name for name, _, _ in row))
+    shoot(svg(row), row, OUT)
     return 0
 
 
