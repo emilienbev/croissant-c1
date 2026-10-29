@@ -23,6 +23,7 @@ echo "$REPO" | grep -Eq '^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$' || { echo "not owner/r
 stage=$(mktemp -d "${TMPDIR:-/tmp}/croissant-cli.XXXXXX")
 trap 'rm -rf "$stage"' EXIT INT TERM
 mkdir -p "$stage/$name" "$OUT"
+OUT=$(cd "$OUT" && pwd)            # absolute: the archive is written from inside $stage
 
 # What it reads at run time: the launcher, the installer, the device's files and scripts it
 # pushes or loads, the application id and update repository, and Lucide's glyphs.
