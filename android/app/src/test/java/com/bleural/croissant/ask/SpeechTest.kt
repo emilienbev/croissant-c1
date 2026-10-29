@@ -25,7 +25,7 @@ class SpeechTest {
     @get:Rule val tmp = TemporaryFolder()
 
     private val key = "sk-proj-fake-0000000000000000000000000000"
-    private val geminiKey = "AIzaSyD-fake-0123456789abcdefghijKLMNOP"
+    private val geminiKey = "AIza00000000000000000000000000000000MNOP"
 
     private fun provider(id: String) = Providers.resolve(id, ProviderSpec(), "100.100.100.7")
 

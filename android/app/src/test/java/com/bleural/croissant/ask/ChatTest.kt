@@ -18,7 +18,7 @@ import org.junit.Test
 /** The three clients against recorded streams (test/resources/ask/): what each sends, what it makes of what comes back. */
 class ChatTest {
     private val host = "100.100.100.7"
-    private val geminiKey = "AIzaSyD-fake-0123456789abcdefghijKLMNOP"
+    private val geminiKey = "AIza00000000000000000000000000000000MNOP"
     private val openAiKey = "sk-proj-fake-0000000000000000000000000000"
     private val timer = ToolSpec("timers_add", "Start a timer", JSONObject("""{"type":"object","properties":{"seconds":{"type":"integer"}},"required":["seconds"]}"""))
     private val jpeg = byteArrayOf(-1, -40, -1, -32)

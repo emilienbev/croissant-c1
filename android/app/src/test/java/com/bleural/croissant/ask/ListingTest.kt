@@ -19,7 +19,7 @@ class ListingTest {
     @get:Rule val tmp = TemporaryFolder()
 
     private val host = "100.100.100.7"
-    private val geminiKey = "AIzaSyD-fake-0123456789abcdefghijKLMNOP"
+    private val geminiKey = "AIza00000000000000000000000000000000MNOP"
     private fun provider(id: String, spec: ProviderSpec = ProviderSpec()) = Providers.resolve(id, spec, host)
 
     @Test fun ollamaChatIsCompletionWithTools() = runBlocking {

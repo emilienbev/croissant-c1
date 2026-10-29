@@ -78,7 +78,7 @@ internal class StoreConfig(dir: File, private val host: String = "100.100.100.7"
             .put("photo", JSONObject()).put("parts", JSONObject().put("tools", "").put("apps", "").put("clock", ""))
             .put("suggest", JSONObject().put("gemma4", "gemma")).put("cases", JSONArray()).toString())
 
-        const val GEMINI = "AIzaSyD-fake-0123456789abcdefghijKLMNOP"
+        const val GEMINI = "AIza00000000000000000000000000000000MNOP"
         const val OPENAI = "sk-proj-fake-key-for-tests-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000Z9y8"
     }
 }

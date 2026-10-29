@@ -101,7 +101,7 @@ class ProvidersTest {
 
     @Test fun aKeyAddsItsProviderAndRemovingTakesAll() {
         val ask = kept()
-        assertNull(ask.saveKey("gemini", "AIzaSyD-fake-0123456789abcdefghijKLMNOP"))
+        assertNull(ask.saveKey("gemini", "AIza00000000000000000000000000000000MNOP"))
         assertEquals(listOf("ollama", "gemini"), ask.ready(host).map { it.id }.sortedBy { it != "ollama" })
         assertEquals("MNOP", ask.hint("gemini"))
         assertNotNull(ask.saveKey("nobody", "key-0000000000"))

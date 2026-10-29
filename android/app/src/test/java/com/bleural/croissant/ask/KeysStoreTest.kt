@@ -32,7 +32,7 @@ internal class SoftSealer : Sealer {
 class KeysStoreTest {
     @get:Rule val tmp = TemporaryFolder()
 
-    private val gemini = "AIzaSyD-fake-0123456789abcdefghijKLMNOP"
+    private val gemini = "AIza00000000000000000000000000000000MNOP"
 
     @Test fun aKeyIsPrintableAsciiOnly() {
         val keys = KeysStore(file(), sealer)
