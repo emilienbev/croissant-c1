@@ -1,5 +1,7 @@
 <p align="center">
-  <img alt="croissant., with the croissant mascot under it at rest: its ears sway and the left one twitches, its eyes look around and blink" src="docs/images/croissant-logo.gif" width="380">
+  <img alt="croissant., with the croissant mascot under it at rest: its ears sway and the left one twitches, its eyes look around and blink. Logo by noh.tter" src="docs/images/croissant-logo.gif" width="380">
+  <br>
+  <sub>Logo by <a href="https://www.instagram.com/noh.tter/">noh.tter</a></sub>
 </p>
 
 <p align="center">
