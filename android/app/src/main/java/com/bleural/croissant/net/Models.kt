@@ -64,8 +64,9 @@ object Models {
     fun fetch(server: Prefs.Server): ServerModels {
         val c = URL("${server.httpUrl}/providers").openConnection() as HttpURLConnection
         c.connectTimeout = 4000; c.readTimeout = 4000
+        ServerAuth.authorize(c, server)
         try {
-            if (c.responseCode != 200) throw java.io.IOException("the server answered ${c.responseCode}")
+            if (c.responseCode != 200) throw ServerAuth.failure(c.responseCode)
             return parse(c.inputStream.bufferedReader().readText())
         } finally {
             c.disconnect()

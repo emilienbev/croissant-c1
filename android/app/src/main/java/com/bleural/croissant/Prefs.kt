@@ -15,6 +15,7 @@ object Prefs {
     private const val KEY_NAME = "server_name"
     private const val KEY_HOST = "server_host"
     private const val KEY_PORT = "server_port"
+    private const val KEY_TOKEN = "server_token"
     private const val KEY_MOVED = "moved_to_device_protected"
     private const val KEY_VOLUME = "volume"
     private const val KEY_MUTED = "muted"
@@ -67,7 +68,8 @@ object Prefs {
     const val HOST_EMULATOR = "10.0.2.2"
     const val DEFAULT_PORT = 8765
 
-    data class Server(val name: String, val host: String, val port: Int) {
+    /** [token]: what the server's pairing code gave over the LAN (server/README.md, "Over the LAN"); empty on the tailnet. */
+    data class Server(val name: String, val host: String, val port: Int, val token: String = "") {
         val url get() = "ws://$host:$port/session"
         /** The same server over plain HTTP, where generated pictures are fetched. */
         val httpUrl get() = "http://$host:$port"
@@ -75,6 +77,8 @@ object Prefs {
         val label get() = if (host.isBlank()) "" else name.ifBlank { "$host:$port" }
         /** A server has been set: until then a hold has nowhere to go. */
         val set get() = host.isNotBlank()
+        /** The `Authorization` header every request carries when there is a token (net/ServerAuth.kt). */
+        val auth get() = token.ifEmpty { null }?.let { "Bearer $it" }
     }
 
     private val isEmulator: Boolean
@@ -119,14 +123,14 @@ object Prefs {
             name = p.getString(KEY_NAME, "") ?: "",
             host = p.getString(KEY_HOST, d.host) ?: d.host,
             port = p.getInt(KEY_PORT, d.port),
+            token = p.getString(KEY_TOKEN, "") ?: "",
         )
     }
 
     fun setServer(ctx: Context, s: Server) {
-        sp(ctx).edit().putString(KEY_NAME, s.name.trim()).putString(KEY_HOST, s.host.trim()).putInt(KEY_PORT, s.port).apply()
+        sp(ctx).edit().putString(KEY_NAME, s.name.trim()).putString(KEY_HOST, s.host.trim()).putInt(KEY_PORT, s.port)
+            .putString(KEY_TOKEN, s.token).apply()
     }
-
-    fun serverUrl(ctx: Context): String = server(ctx).url
 
     /** Settings > Device, 0..100. Brightness shows the device's own level until one is saved. */
     fun volume(ctx: Context): Int = sp(ctx).getInt(KEY_VOLUME, DeviceLevels.DEFAULT_VOLUME)

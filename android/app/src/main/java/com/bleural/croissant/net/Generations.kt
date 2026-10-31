@@ -142,9 +142,9 @@ class GenerationFetcher(
      */
     suspend fun fetch(id: String): Answer = withContext(Dispatchers.IO) {
         if (c1(id)) return@withContext Answer.NotYet
-        val base = server().httpUrl
+        val s = server()
         try {
-            client.newCall(Request.Builder().url("$base/generated/$id").build()).execute().use { r ->
+            client.newCall(ServerAuth.authorize(Request.Builder().url("${s.httpUrl}/generated/$id"), s).build()).execute().use { r ->
                 when (r.code) {
                     200 -> {
                         val bytes = r.body.bytes()
@@ -154,10 +154,12 @@ class GenerationFetcher(
                         // Deleted only once the bytes are on this disk, so the DELETE
                         // says the picture arrived rather than only that it was sent.
                         // One that does not land is owed, and [watch] pays it.
-                        if (!claim(base, id)) forgets.add(id)
+                        if (!claim(s, id)) forgets.add(id)
                         Answer.Saved
                     }
                     202 -> { store.tried(id); Answer.NotYet }
+                    // Not the picture's failure: the C1 has to scan the server's code again, and then it comes.
+                    ServerAuth.REFUSED -> { Log.w(TAG, "$id waits: ${ServerAuth.NEEDS_CODE}"); Answer.NotYet }
                     404 -> Answer.Failed("No longer on the server").also { store.fail(id, it.reason) }
                     else -> {
                         val why = reason(r.body.string()) ?: "server error ${r.code}"
@@ -253,7 +255,7 @@ class GenerationFetcher(
      */
     private suspend fun ask(id: String, prompt: String, photo: ByteArray?, onSent: () -> Unit): Again =
         suspendCancellableCoroutine { cont ->
-            val client = SessionClient(server().url)
+            val client = SessionClient(server())
             fun settle(answer: Again) {
                 if (!cont.isActive) return
                 client.close()
@@ -318,7 +320,7 @@ class GenerationFetcher(
     private fun pay() {
         for ((id, at) in forgets.all()) {
             val stale = System.currentTimeMillis() - at > Generated.KEEP_MS
-            if (stale || claim(server().httpUrl, id)) {
+            if (stale || claim(server(), id)) {
                 forgets.remove(id)
                 if (stale) Log.i(TAG, "$id given up on; the server has swept it by now")
             }
@@ -326,8 +328,8 @@ class GenerationFetcher(
     }
 
     /** True when the server heard it. A 404 counts: it does not have the picture either way. */
-    private fun claim(base: String, id: String): Boolean = runCatching {
-        client.newCall(Request.Builder().url("$base/generated/$id").delete().build())
+    private fun claim(s: Prefs.Server, id: String): Boolean = runCatching {
+        client.newCall(ServerAuth.authorize(Request.Builder().url("${s.httpUrl}/generated/$id").delete(), s).build())
             .execute().use { it.isSuccessful || it.code == 404 }
     }.getOrElse { Log.i(TAG, "$id not claimed: ${it.javaClass.simpleName}"); false }
 

@@ -1,6 +1,7 @@
 package com.bleural.croissant.net
 
 import android.util.Log
+import com.bleural.croissant.Prefs
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -23,11 +24,14 @@ import java.util.concurrent.TimeUnit
  * retry behaviour that consumes this distinction is not implemented yet, so for now it only
  * decides the message shown to the user.
  */
-class SessionClient(private val url: String) {
+class SessionClient(private val server: Prefs.Server) {
 
     companion object { private const val TAG = "SessionClient" }
 
-    enum class FailureKind { UNREACHABLE, TRANSIENT }
+    /** REFUSED: the server on the LAN wants its pairing code (ServerAuth). */
+    enum class FailureKind { UNREACHABLE, TRANSIENT, REFUSED }
+
+    private val url = server.url
 
     interface Listener {
         fun onOpen()
@@ -47,7 +51,7 @@ class SessionClient(private val url: String) {
 
     fun connect(listener: Listener) {
         everOpened = false
-        val request = Request.Builder().url(url).build()
+        val request = ServerAuth.authorize(Request.Builder().url(url), server).build()
         ws = client.newWebSocket(request, object : WebSocketListener() {
 
             override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -74,7 +78,7 @@ class SessionClient(private val url: String) {
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                val kind = classify(t)
+                val kind = classify(t, response)
                 Log.w(TAG, "failure (${kind}): ${t.javaClass.simpleName}: ${t.message}")
                 listener.onFailure(kind, describe(kind, t))
             }
@@ -82,8 +86,9 @@ class SessionClient(private val url: String) {
     }
 
     /** Connect-level problems mean the backend is not there; everything else is transient. */
-    private fun classify(t: Throwable): FailureKind = when {
+    private fun classify(t: Throwable, response: Response?): FailureKind = when {
         everOpened -> FailureKind.TRANSIENT
+        response?.code == ServerAuth.REFUSED -> FailureKind.REFUSED
         t is ConnectException || t is NoRouteToHostException ||
             t is UnknownHostException || t is SocketTimeoutException -> FailureKind.UNREACHABLE
         else -> FailureKind.TRANSIENT
@@ -91,6 +96,7 @@ class SessionClient(private val url: String) {
 
     private fun describe(kind: FailureKind, t: Throwable): String = when (kind) {
         FailureKind.UNREACHABLE -> "Backend unreachable"
+        FailureKind.REFUSED -> ServerAuth.NEEDS_CODE
         FailureKind.TRANSIENT -> t.message ?: "Connection lost"
     }
 

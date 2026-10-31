@@ -45,7 +45,7 @@ data class TranscribeState(val file: File, val phase: TxPhase, val progress: Flo
  * come, so a failure keeps what was heard and the next attempt goes on from there too.
  */
 class Transcriber(private val store: RecordingsStore, private val scope: CoroutineScope,
-                  private val speech: () -> HoldSpeech = { HoldSpeech.Mac(null) }, private val url: () -> String) {
+                  private val speech: () -> HoldSpeech = { HoldSpeech.Mac(null) }, private val server: () -> Prefs.Server) {
     companion object {
         private const val TAG = "Transcriber"
         private const val FRAME = 64 * 1024
@@ -77,7 +77,7 @@ class Transcriber(private val store: RecordingsStore, private val scope: Corouti
             is HoldSpeech.Mac -> s.pick
         }
         _state.value = TranscribeState(file, TxPhase.Sending, 0f)
-        val c = SessionClient(url())
+        val c = SessionClient(server())
         client = c
         c.connect(object : SessionClient.Listener {
             override fun onOpen() = Unit

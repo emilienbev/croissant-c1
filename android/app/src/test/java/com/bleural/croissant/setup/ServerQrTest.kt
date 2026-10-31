@@ -24,6 +24,21 @@ class ServerQrTest {
         assertEquals("", ServerQr.parse("croissant://server?host=100.100.100.103&port=8765")?.name)
     }
 
+    @Test fun aLanCodeCarriesItsToken() {
+        assertEquals(
+            ServerQr("192.168.1.5", 8765, "Mac", "AbC-123_xyzAbC-123_xyzAbC-123_xy"),
+            ServerQr.parse("croissant://server?host=192.168.1.5&port=8765&name=Mac&token=AbC-123_xyzAbC-123_xyzAbC-123_xy"),
+        )
+        assertEquals("", ServerQr.parse("croissant://server?host=100.100.100.103&port=8765")?.token)
+    }
+
+    @Test fun aTokenTheServerDoesNotMakeRefusesTheCode() {
+        assertNull(ServerQr.parse("croissant://server?host=192.168.1.5&port=8765&token="))
+        assertNull(ServerQr.parse("croissant://server?host=192.168.1.5&port=8765&token=short"))
+        assertNull(ServerQr.parse("croissant://server?host=192.168.1.5&port=8765&token=has+a+space+in+it+somewhere"))
+        assertNull(ServerQr.parse("croissant://server?host=192.168.1.5&port=8765&token=" + "a".repeat(129)))
+    }
+
     @Test fun otherQrCodesAreNotServers() {
         // What the scanner meets when it is pointed at something else.
         assertNull(ServerQr.parse("WIFI:S:home;T:WPA;P:secret;;"))

@@ -260,7 +260,7 @@ class VoiceService : Service() {
     val recorder by lazy { Recorder(Stores.recordings(this)) }
     /** Sends a recording for transcription on a tap of Transcribe, never on its own: to the Mac, or to a cloud model from here. */
     val transcriber by lazy {
-        Transcriber(Stores.recordings(this), scope, speech = { holdSpeech() }) { Prefs.serverUrl(this) }
+        Transcriber(Stores.recordings(this), scope, speech = { holdSpeech() }) { Prefs.server(this) }
     }
     private val translations by lazy { Stores.translations(this) }
 
@@ -702,7 +702,7 @@ class VoiceService : Service() {
             Log.i(TAG, "utterance begun, heard by ${cloud.entry.id}$what")
             return
         }
-        val client = SessionClient(server.url)
+        val client = SessionClient(server)
         session = client
         client.connect(object : SessionClient.Listener {
             override fun onOpen() = Unit
@@ -742,7 +742,7 @@ class VoiceService : Service() {
 
             override fun onFailure(kind: SessionClient.FailureKind, message: String) {
                 if (!mine) return
-                lost(h)
+                lost(h, message.takeIf { kind == SessionClient.FailureKind.REFUSED })
             }
         })
 
@@ -1066,10 +1066,11 @@ class VoiceService : Service() {
     }
 
     /** The socket went before the words came back: nothing will come of the hold, the server did not answer for speech. */
-    private fun lost(h: Hold) {
+    /** [why]: what the server said when it answered but refused; null when it did not answer. */
+    private fun lost(h: Hold, why: String? = null) {
         val server = Prefs.server(this)
         h.turn?.let { conversations.drop(it) }
-        fail("${server.name.ifBlank { server.host }} did not answer, so nothing was heard")
+        fail(why ?: "${server.name.ifBlank { server.host }} did not answer, so nothing was heard")
     }
 
     /** A Translator hold that came back with words: kept under its pair for the saved list. */

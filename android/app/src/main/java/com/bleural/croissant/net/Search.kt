@@ -25,7 +25,7 @@ object WebSearch {
     /** The digest for [query]; throws why not (no words, the search off, the server away). */
     suspend fun digest(server: Prefs.Server, query: String): String = withContext(Dispatchers.IO) {
         val url = "${server.httpUrl}/search".toHttpUrl().newBuilder().addQueryParameter("q", query).build()
-        client.newCall(Request.Builder().url(url).build()).execute().use { r ->
+        client.newCall(ServerAuth.authorize(Request.Builder().url(url), server).build()).execute().use { r ->
             val body = r.body.string()
             if (r.isSuccessful) return@use body
             throw IOException(runCatching { JSONObject(body).optString("error") }.getOrNull()?.ifEmpty { null }
