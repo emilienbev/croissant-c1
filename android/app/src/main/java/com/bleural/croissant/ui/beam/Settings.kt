@@ -151,8 +151,8 @@ internal fun SettingsPages(screen: Screen, core: Core, nav: NavState) {
         Screen.ServerWays -> PageTop("server", rampOf(Feature.Settings)) {
             ServerWays(rampOf(Feature.Settings), nav::pop, onScan = { nav.push(Screen.ServerScan) }, onPick = { nav.push(Screen.ServerFind) })
         }
-        Screen.ServerScan -> ScanServer(rampOf(Feature.Settings), core, onBack = nav::pop, onKeep = { name, host, port, _ ->
-            core.saveServer(Prefs.Server(name, host, port)); nav.drop(Screen.ServerWays); nav.pop(Sound.Commit)
+        Screen.ServerScan -> ScanServer(rampOf(Feature.Settings), core, onBack = nav::pop, onKeep = { s, _ ->
+            core.saveServer(s); nav.drop(Screen.ServerWays); nav.pop(Sound.Commit)
         })
         Screen.ServerFind -> ServerFindPage(core, nav)
         Screen.ServerAddress -> TypeServer(rampOf(Feature.Settings), core, onKeep = { host, port, _ ->

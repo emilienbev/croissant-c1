@@ -321,10 +321,10 @@ internal fun ServerStep(core: Core, setup: SetupUi) {
     var typing by remember { mutableStateOf(false) }
     var beat by remember { mutableStateOf<Pair<String, String>?>(null) }
     val scope = rememberCoroutineScope()
-    val keep = { name: String, host: String, port: Int, ms: Long ->
-        core.saveServer(Prefs.Server(name, host, port))
+    val keep = { s: Prefs.Server, ms: Long ->
+        core.saveServer(s)
         Cues.play(Sound.Commit)
-        beat = name.ifBlank { host } to "answers in $ms ms"
+        beat = s.name.ifBlank { s.host } to "answers in $ms ms"
         scope.launch { delay(BEAT_MS); core.setupNext() }
         Unit
     }
@@ -338,11 +338,11 @@ internal fun ServerStep(core: Core, setup: SetupUi) {
         }
         typing -> {
             SetupBackTarget { typing = false; Cues.play(Sound.ScreenOut) }
-            TypeServer(r, core, onKeep = { host, port, ms -> keep("", host, port, ms) })
+            TypeServer(r, core, onKeep = { host, port, ms -> keep(Prefs.Server("", host, port), ms) })
         }
         picking -> {
             SetupBackTarget { picking = false; Cues.play(Sound.ScreenOut) }
-            val tap = { c: Candidate -> c.ms?.let { keep(c.peer.name, c.peer.ip, Prefs.DEFAULT_PORT, it) }; Unit }
+            val tap = { c: Candidate -> c.ms?.let { keep(Prefs.Server(c.peer.name, c.peer.ip, Prefs.DEFAULT_PORT), it) }; Unit }
             SetupStepPage(Step.Server, setup, word, onWord, list = true) {
                 ServerList(search, r, { picking = false }, value = { it.peer.ip }, ticked = { false }, onTap = tap,
                     onType = { typing = true; Cues.play(Sound.ScreenIn) }, foot = FOOT_CLEAR)
@@ -373,18 +373,19 @@ internal fun ServerWays(r: Ramp, onBack: () -> Unit, onScan: () -> Unit, onPick:
 
 /**
  * Scanning the server's code (the setup's, and Settings' too): the viewfinder reads the code
- * croissant-server prints at its start, asks it as a typed address is asked, and keeps it with
- * how fast it answered. One that does not answer says so a moment, then the scanner reads again.
+ * croissant-server prints at its start, asks it as a typed address is asked, and keeps it, with
+ * the token a LAN code carries, and how fast it answered. One that does not answer says so a
+ * moment, then the scanner reads again.
  */
 @Composable
-internal fun ScanServer(r: Ramp, core: Core, onBack: () -> Unit, onKeep: (String, String, Int, Long) -> Unit) {
+internal fun ScanServer(r: Ramp, core: Core, onBack: () -> Unit, onKeep: (Prefs.Server, Long) -> Unit) {
     var read by remember { mutableStateOf<ServerQr?>(null) }
     var none by remember { mutableStateOf(false) }
     val scanner = rememberQrScanner(ServerQr::parse) { read = it }
     LaunchedEffect(read) {
         val q = read ?: return@LaunchedEffect
         val ms = core.checkServer(q.host, q.port)
-        if (ms != null) { onKeep(q.name, q.host, q.port, ms); return@LaunchedEffect }
+        if (ms != null) { onKeep(Prefs.Server(q.name, q.host, q.port, q.token), ms); return@LaunchedEffect }
         none = true
         Cues.play(Sound.ExchangeFailed)
         delay(NO_ANSWER_MS)
