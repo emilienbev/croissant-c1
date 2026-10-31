@@ -24,10 +24,16 @@ APPLE_SILICON = sys.platform == "darwin" and platform.machine() == "arm64"
 
 # Tailscale hands out addresses from the CGNAT range.
 TAILNET = ipaddress.ip_network("100.64.0.0/10")
+# The private ranges a home or office network uses (RFC 1918), where `--lan` listens.
+LAN = tuple(ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"))
+
+# Where the LAN's pairing token is kept (pairing.lan_token), beside the CLI's own
+# ~/.croissant, so a C1 paired over the LAN stays paired across restarts.
+LAN_TOKEN_PATH = Path.home() / ".croissant" / "lan-token"
 
 
-def tailnet_addresses() -> list[str]:
-    """Every local IPv4 address that belongs to the tailnet."""
+def _local_ipv4() -> list[str]:
+    """Every local IPv4 address, as ifconfig lists them."""
     try:
         out = subprocess.run(
             ["/sbin/ifconfig"], capture_output=True, text=True, timeout=5
@@ -35,15 +41,41 @@ def tailnet_addresses() -> list[str]:
     except (OSError, subprocess.SubprocessError) as e:  # pragma: no cover
         log.warning("could not enumerate interfaces: %s", e)
         return []
-    found = []
-    for m in re.finditer(r"inet (\d+\.\d+\.\d+\.\d+)", out):
-        addr = m.group(1)
-        try:
-            if ipaddress.ip_address(addr) in TAILNET:
-                found.append(addr)
-        except ValueError:
-            continue
-    return found
+    return re.findall(r"inet (\d+\.\d+\.\d+\.\d+)", out)
+
+
+def _within(addr: str, networks) -> bool:
+    try:
+        ip = ipaddress.ip_address(addr)
+    except ValueError:
+        return False
+    return any(ip in n for n in networks)
+
+
+def tailnet_addresses() -> list[str]:
+    """Every local IPv4 address that belongs to the tailnet."""
+    return [a for a in _local_ipv4() if _within(a, (TAILNET,))]
+
+
+def lan_addresses() -> list[str]:
+    """Every local IPv4 address on a private LAN."""
+    return [a for a in _local_ipv4() if _within(a, LAN)]
+
+
+def is_lan(addr: str) -> bool:
+    return _within(addr, LAN)
+
+
+def trusted(addr: str) -> bool:
+    """
+    Loopback and the tailnet: requests that arrive there need no token, as before the LAN.
+    Anything else is a network other people may be on.
+    """
+    try:
+        ip = ipaddress.ip_address(addr)
+    except ValueError:
+        return False
+    return ip.is_loopback or ip in TAILNET
 
 
 def default_hosts() -> list[str]:
@@ -138,6 +170,7 @@ class Config:
     hosts: list[str] = field(default_factory=default_hosts)
     port: int = 8765
     path: str = "/session"
+    lan_token_path: Path = LAN_TOKEN_PATH
 
     # The MLX weights in models/ on Apple Silicon; faster-whisper's own name for the
     # same model anywhere else (it fetches the CTranslate2 build on first use).

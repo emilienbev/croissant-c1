@@ -41,19 +41,42 @@ uv run croissant-server
 
 Ready when it logs `listening on ws://...`. Restart it after pulling new code. It then
 prints a QR code (`croissant://server?host=...&port=...&name=...`, this machine's tailnet
-address) for the C1's Server step to scan; with no tailnet address it says so and prints none.
+address, or its LAN address and `&token=...` with `--lan`) for the C1's Server step to scan.
+With no address to give, it says so and prints none.
 
 It listens on loopback and on this machine's tailnet address, port 8765, never on
 `0.0.0.0`. The R1 comes in over the tailnet; the Android emulator comes in on loopback
 through `10.0.2.2`. If no tailnet address is found it warns, and the R1 cannot connect.
-There is no authentication: the tailnet is the only gate.
+On loopback and the tailnet there is no authentication: the tailnet is the gate.
+
+### Over the LAN
+
+For a C1 without Tailscale, `--lan` also listens on this machine's address on the home or
+office network (10.x, 172.16-31.x or 192.168.x):
+
+```bash
+uv run croissant-server --lan
+```
+
+Everyone on that network can reach the port, so a request there gets in only with a token.
+The QR code then holds the LAN address and the token, and a C1 that scans it sends the token
+on every request. Without it the server answers 401 and the C1 says to scan the code again.
+`GET /` still answers, so a C1 can tell a server that wants its code from no server.
+
+- The token is kept in `~/.croissant/lan-token`, so a paired C1 stays paired across
+  restarts. Delete the file to shut every paired C1 out, then scan the new code.
+- The settings page answers on loopback and the tailnet only: a browser cannot send the token.
+- The LAN is plain HTTP, so audio and transcripts cross it unencrypted. The tailnet does not.
+- If the router gives this machine another address, scan the new code. A fixed address for
+  it in the router's settings avoids that.
 
 Flags (`uv run croissant-server --help` for all):
 
 | Flag | |
 |---|---|
 | `--port N` | default 8765 |
-| `--host ADDR` | listen here instead (repeatable) |
+| `--host ADDR` | listen here instead (repeatable). Anywhere but loopback or the tailnet needs the token |
+| `--lan` | also listen on the LAN, for a paired C1 only |
 | `--llm ID` | the default chat model, a C1's with no pick: `provider:model`, or an Ollama model name |
 | `--stt ID` | the default speech model: `provider:model`, or a local Whisper |
 | `--lang CODE` | Whisper's language, `en` by default; `auto` to detect |

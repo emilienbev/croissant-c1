@@ -6,13 +6,16 @@ import logging
 
 from . import __version__
 from .app import run
-from .config import IMAGE_MODELS, Config
+from .config import IMAGE_MODELS, Config, lan_addresses
 
 
 def main() -> None:
     p = argparse.ArgumentParser(prog="croissant-server")
     p.add_argument("--host", action="append", dest="hosts",
                    help="bind address (repeatable). Default: loopback + tailnet.")
+    p.add_argument("--lan", action="store_true",
+                   help="also listen on this machine's LAN address; a C1 gets in there only "
+                        "with the pairing code it scanned")
     p.add_argument("--port", type=int, default=8765)
     p.add_argument("--llm", default=None,
                    help="the default chat model: a provider:model id (gemini:gemini-3.8-flash), or an "
@@ -77,6 +80,11 @@ def main() -> None:
     cfg = Config()
     if args.hosts:
         cfg.hosts = args.hosts
+    if args.lan:
+        found = lan_addresses()
+        if not found:
+            p.error("--lan: this machine has no private LAN address (10.x, 172.16-31.x or 192.168.x)")
+        cfg.hosts = [*cfg.hosts, *(a for a in found if a not in cfg.hosts)]
     cfg.port = args.port
     if args.llm:
         cfg.llm = args.llm

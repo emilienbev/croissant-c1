@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import http
 import json
 import logging
@@ -19,7 +20,7 @@ from websockets.datastructures import Headers
 from websockets.http11 import Request, Response
 
 from . import __version__, pairing, settings, stt_worker
-from .config import APPLE_SILICON, IMAGE_MODELS, Config
+from .config import APPLE_SILICON, IMAGE_MODELS, Config, trusted
 from .costs import Costs
 from .history import History
 from .images import Generations
@@ -128,7 +129,41 @@ def http_routes(generations: Generations | None, costs: Costs, search: WebSearch
     return process
 
 
+# What a request on the LAN without the pairing token is told; the C1 shows it.
+REFUSED = "this server lets a C1 in over the LAN only with its pairing code: scan it again"
+
+
+def gated(process, token: str | None):
+    """
+    [process] behind the LAN's token. A request that arrives on an address that is neither
+    loopback nor the tailnet, a WebSocket upgrade as much as a plain route, passes only with
+    `Authorization: Bearer <token>` (pairing.lan_token). `GET /` always answers, so a C1 can
+    tell a server that wants its code from no server at all. No token: nothing listens
+    beyond loopback and the tailnet, and nothing is checked.
+    """
+    if token is None:
+        return process
+    expected = f"Bearer {token}".encode()
+
+    def check(connection: ServerConnection, request: Request) -> Response | Awaitable[Response] | None:
+        host = connection.local_address[0]
+        path = request.path.split("?", 1)[0]
+        liveness = path == "/" and "Upgrade" not in request.headers
+        if not trusted(host) and not liveness:
+            given = request.headers.get("Authorization", "").encode()
+            if not hmac.compare_digest(given, expected):
+                log.warning("refused %s on %s from %s: %s LAN token", path, host, connection.remote_address[0],
+                            "a wrong" if given else "no")
+                return _json(http.HTTPStatus.UNAUTHORIZED, error=REFUSED)
+        return process(connection, request)
+
+    return check
+
+
 async def run(cfg: Config) -> None:
+    # Listening beyond loopback and the tailnet (`--lan`, or such a `--host`) is listening on a
+    # network other people may be on: every request there needs the pairing code's token.
+    lan_token = None if all(trusted(h) for h in cfg.hosts) else pairing.lan_token(cfg.lan_token_path)
     # What this machine runs itself, per slot: the device may pick these too.
     pictures = list(IMAGE_MODELS) if cfg.images and APPLE_SILICON else []
     local = {"stt": [cfg.stt_model] if APPLE_SILICON else
@@ -226,14 +261,20 @@ async def run(cfg: Config) -> None:
         handler,
         cfg.hosts,
         cfg.port,
-        process_request=http_routes(generations, costs, search, tools=ask_tools),
+        process_request=gated(http_routes(generations, costs, search, tools=ask_tools), lan_token),
         max_size=4 * 1024 * 1024,
         ping_interval=20,
     ):
         for h in cfg.hosts:
-            log.info("listening on ws://%s:%d%s", h, cfg.port, cfg.path)
-        log.info("settings page on http://%s:%d/settings", cfg.hosts[-1], cfg.port)
-        pairing.announce(cfg.hosts, cfg.port, color=sys.stdout.isatty())
+            log.info("listening on ws://%s:%d%s%s", h, cfg.port, cfg.path,
+                     "" if trusted(h) else "  (a paired C1 only: it needs the pairing code)")
+        # A browser cannot send the LAN's token: the page answers on loopback and the tailnet.
+        page = next((h for h in reversed(cfg.hosts) if trusted(h)), None)
+        if page is not None:
+            log.info("settings page on http://%s:%d/settings", page, cfg.port)
+        else:
+            log.warning("no settings page: it answers on loopback and the tailnet, and this server listens on neither")
+        pairing.announce(cfg.hosts, cfg.port, color=sys.stdout.isatty(), lan_token=lan_token)
         h = providers.default("stt")
         log.info("stt=%s  Ask's tools run here: %s", h.label() if h else "none", ", ".join(ask_tools) or "none")
         log.info("  the device may pick among %s", ", ".join(

@@ -159,7 +159,7 @@ The CLI itself: `croissant upgrade` (installed from a release), or `git pull` in
 
 ## Network and security
 
-- Tailscale is highly recommended, but not required. Without it, skip the R1's Tailscale step, start the server with `--host ADDR` on an address the R1 can reach, and type that address in the R1's server step.
+- Tailscale is highly recommended, but not required. Without it, skip the R1's Tailscale step, start the server with `--lan`, and scan the QR code it prints in the R1's server step. On the LAN the server lets in only a C1 that scanned that code, and what crosses it is unencrypted ([server/README.md](server/README.md#over-the-lan)).
 - The server's own providers' keys (for its speech and pictures) are stored in `server/providers.json`, on the machine that runs `croissant-server`, and never reach the R1.
 - Ask's providers and keys are the C1's (Settings > ask > providers), each key sealed by the Android keystore, sent only to its provider and shown only by its last four. They are typed on the R1 or on the page it serves to a phone (Settings > ask > on a phone): a QR code with a one-time code, up only while that page is open, on the tailnet's address when Tailscale is up. Plain Wi-Fi is offered too, and there what is typed crosses the network unencrypted: use it on a private network only.
 - The R1's calls to the server are unauthenticated and go over plain HTTP. The default network setup relies on your tailnet being a closed, private network that only your own devices can join. On any other network setup, consider implementing your own authentication and encryption.
