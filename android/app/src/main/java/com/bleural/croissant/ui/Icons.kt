@@ -282,7 +282,11 @@ object Glyphs {
     val Moon by lazy { glyph("moon") { fill("M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z") } }
     val Restart by lazy { glyph("restart") { stroke("M19 12a7 7 0 1 1-2.05-4.95M19 4v4.5h-4.5") } }
     /** Settings > update: an arrow down into a tray. */
-    val Download by lazy { glyph("download") { stroke("M12 3.5V14M7.5 9.5 12 14l4.5-4.5"); stroke("M4 14.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3.5") } }
+    val Download by lazy { glyph("download") { stroke("M12 3.5V14M7.5 9.5 12 14l4.5-4.5"); stroke(TRAY) } }
+    /** Settings > Device > backup: update's arrow turned round, up out of the tray, the zip leaving for the server. */
+    val Backup by lazy { glyph("backup") { stroke("M12 14V3.5M7.5 8 12 3.5l4.5 4.5"); stroke(TRAY) } }
+    /** Backup > restore: update's own arrow, down into the tray, the zip coming back. */
+    val Restore: ImageVector get() = Download
     /** Back to what it was (update > source's reset): a return arrow, apart from [Restart]'s check again. */
     val Return by lazy { glyph("return") { stroke("M9 4.5 4.5 9 9 13.5"); stroke("M4.5 9H14a5.5 5.5 0 0 1 0 11h-3") } }
     val Exit by lazy {
@@ -385,6 +389,9 @@ object Glyphs {
 /** The weather's cloud, and the same 2.5 lower for when it stands alone. */
 private const val CLOUD = "M7 15.5h10a3.8 3.8 0 0 0 .3-7.6A5.5 5.5 0 0 0 6.6 9.6 3 3 0 0 0 7 15.5z"
 private const val CLOUD_LOW = "M7 18h10a3.8 3.8 0 0 0 .3-7.6A5.5 5.5 0 0 0 6.6 12.1 3 3 0 0 0 7 18z"
+
+/** The tray [Glyphs.Download] and [Glyphs.Backup] share. */
+private const val TRAY = "M4 14.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3.5"
 
 /** The speaker body shared by [Glyphs.Sound] and [Glyphs.SoundOff]: drawn with [Sheet.both], so the 2-unit stroke rounds its corners. */
 private const val SPEAKER = "M3.5 9.5v5h3L11.5 18.5V5.5L6.5 9.5z"

@@ -466,6 +466,8 @@ class Core(
         // and the first start of a new version opens on the page that says so.
         update.start()
         if (update.ui.value.phase == UpdatePhase.Updated) ui.openUpdate()
+        // A start that applied a restore opens on the backup page, which says what it came to.
+        if (backups.ui.value.outcome != null) ui.openBackup()
         val finished = Prefs.setupFinished(activity)
         _setup.value = SetupUi(open = !finished, finished = finished, skipped = Prefs.setupSkipped(activity)
             .split(',').mapNotNull { n -> Step.entries.firstOrNull { it.name == n } }.toSet())

@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import com.bleural.croissant.AgentFolder
 import com.bleural.croissant.AgentSessions
@@ -421,8 +420,6 @@ private fun AgentFolderPage(agent: String, cwd: String, core: Core, nav: NavStat
     }
 }
 
-/** The folders' surface (`AG2_SURF`): the one tone of what is grouped. */
-private val SURFACE = Color(0xFF1C1C1E)
 private const val FOLDER_H = 120f
 private const val FOLDER_GAP = 12f
 private const val LIFT_MS = 160

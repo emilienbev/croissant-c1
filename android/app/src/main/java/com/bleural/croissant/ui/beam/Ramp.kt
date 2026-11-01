@@ -53,6 +53,8 @@ val FAINT = Color(0xFF2A2A2A)
 val DIM = Color(0xFF4A4A4A)
 /** Destructive only. */
 val DANGER = Color(0xFFFF3B30)
+/** The one tone of what is grouped (the page's `AG2_SURF`): Agents' folders, the restore's card. */
+internal val SURFACE = Color(0xFF1C1C1E)
 
 /** The ramp of [hue]: everything but the hue is the device's own black, white and greys. */
 fun ramp(hue: Color): Ramp = Ramp(

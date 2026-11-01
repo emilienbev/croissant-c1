@@ -78,9 +78,9 @@ import kotlin.math.roundToInt
 
 /*
  * Settings, the second half: Device and the pages under it (Sound, Display, Design, Screen off,
- * Battery and their pickers), Power, and the eSIM pages (Esim.kt), all in the Settings hue. Each is
- * the kit laid out as the Settings list is, the first row at y 104 or the first label at 132,
- * groups apart by space.
+ * Battery and their pickers; Backup is Backup.kt), Power, and the eSIM pages (Esim.kt), all in the
+ * Settings hue. Each is the kit laid out as the Settings list is, the first row at y 104 or the
+ * first label at 132, groups apart by space.
  */
 
 /** The Settings ramp, every page here. */
@@ -112,6 +112,8 @@ internal fun SettingsDevicePages(
         }
         Screen.BatteryEvery -> PickPage("battery", "every", BatteryTracker.EVERY_OPTIONS, BatteryTracker::label, core.batteryEvery, onPick = { core.saveBatteryEvery(it); nav.pop() }, onBack = nav::pop)
         Screen.Power -> PowerPage(core.isOwner, onAction = { core.power(it) }, onBack = nav::pop)
+        Screen.Backup -> BackupPage(core, nav)
+        Screen.Restore -> RestorePage(core, nav)
         // Picking another design swaps the whole UI (Core.saveLook); this page goes with it.
         Screen.Design -> PickPage(
             "design", null, Designs.looks.map { it.first }, { l -> Designs.looks.first { it.first == l }.second }, Designs.resolve(core.look),
@@ -182,17 +184,22 @@ private val DEVICE_ROWS = listOf(Screen.Sound, Screen.Display, Screen.Design, Sc
 
 /**
  * Settings > Device: sound, display, design, tones and battery, glyph rows as Settings' with what
- * each is set to (the design and the tones by their own names); then, apart, setup, which runs the
- * first setup again from hello without wiping anything.
+ * each is set to (the design and the tones by their own names); then, apart, the two that concern
+ * the whole C1, in the order of a move: backup (no value: its page says when the last one was) and
+ * setup, which runs the first setup again from hello without wiping anything.
  */
 @Composable
 internal fun DevicePage(volume: Int, muted: Boolean, brightness: Int, batteryLife: String?, design: String, tones: String, onOpen: (Screen) -> Unit, onSetup: () -> Unit, onBack: () -> Unit) {
-    RowsPage("device", DEVICE_ROWS.size + 1, onBack) { i, rows ->
+    RowsPage("device", DEVICE_ROWS.size + 2, onBack) { i, rows ->
         if (i == DEVICE_ROWS.size) {
             Column {
                 Spacer(Modifier.height(SETTINGS_GAP))
-                ShelfRow("setup", S, focused = rows.focus == i, onClick = { rows.focus = i; onSetup() }, glyph = Glyphs.Restart, chevron = true)
+                ShelfRow("backup", S, focused = rows.focus == i, onClick = { rows.focus = i; onOpen(Screen.Backup) }, glyph = Glyphs.Backup, chevron = true)
             }
+            return@RowsPage
+        }
+        if (i == DEVICE_ROWS.size + 1) {
+            ShelfRow("setup", S, focused = rows.focus == i, onClick = { rows.focus = i; onSetup() }, glyph = Glyphs.Restart, chevron = true)
             return@RowsPage
         }
         val s = DEVICE_ROWS[i]

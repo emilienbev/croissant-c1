@@ -83,6 +83,10 @@ sealed interface Screen {
     data object Design : Screen
     /** Settings > Device > Tones: the interface's sound pack, the highlighted one heard on its play key. */
     data object Tones : Screen
+    /** Settings > Device > backup: back up now, restore, and what the last one came to (Beam's). */
+    data object Backup : Screen
+    /** Backup > restore: the server's backups, this C1's and another C1's, a tap asking first (Beam's). */
+    data object Restore : Screen
     /** The Metronome's time signature, opened from it. */
     data object TimeSignature : Screen
     /** The Metronome's sound, picked from its list behind the dial's settings mark. */

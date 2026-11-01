@@ -57,6 +57,9 @@ interface UiShell {
     /** The first start of a new version: the update page should come up, saying so. A design without one ignores it. */
     fun openUpdate() {}
 
+    /** A start that applied a restore, or failed to: the backup page should come up, saying so. A design without one ignores it. */
+    fun openBackup() {}
+
     /**
      * Ask called a tool of the Atelier app [id]: its page should come up, where the app acts
      * (Core has started it). A design without Atelier ignores it.

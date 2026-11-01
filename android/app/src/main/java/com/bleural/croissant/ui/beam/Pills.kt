@@ -42,14 +42,19 @@ import kotlinx.coroutines.delay
  * foot that asks "sure?" before it acts ([SurePill]). Page pixels.
  */
 
-/** A pill: 46 tall, fully round, the word 30 Medium centred, 20 either side, pushed in as it is tapped (Push.kt). Every send is one, in the hue with a black word. */
+/**
+ * A pill: 46 tall, fully round, the word 30 Medium centred, 20 either side, pushed in as it is tapped
+ * (Push.kt). Every send is one, in the hue with a black word. [onClick] null: one that cannot act (a
+ * refused restore's), neither tapped nor pushed.
+ */
 @Composable
-internal fun Pill(word: String, fill: Color, ink: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun Pill(word: String, fill: Color, ink: Color, modifier: Modifier = Modifier, onClick: (() -> Unit)?) {
     val source = remember { MutableInteractionSource() }
+    val press = if (onClick == null) Modifier else Modifier.clickable(interactionSource = source, indication = null, onClick = onClick)
     Box(modifier) {
         Box(
             Modifier.height(46.px).pushable(source).clip(RoundedCornerShape(23.px)).background(fill)
-                .clickable(interactionSource = source, indication = null, onClick = onClick).padding(start = 20.px, end = 20.px),
+                .then(press).padding(start = 20.px, end = 20.px),
         ) {
             Text(word, style = PILL, color = ink, maxLines = 1, softWrap = false, modifier = Modifier.paddingFromBaseline(top = 33.px))
         }

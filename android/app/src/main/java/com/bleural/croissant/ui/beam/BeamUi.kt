@@ -77,6 +77,11 @@ class BeamUi(val variant: String) : UiShell {
         if (nav.current != Screen.Update) nav.push(Screen.Update)
     }
 
+    /** A start after a restore: the backup page, saying what it came to, over Home. */
+    override fun openBackup() {
+        if (nav.current != Screen.Backup) nav.push(Screen.Backup)
+    }
+
     /** Ask called one of the app's tools: its page over whatever is up, unless it is already. */
     override fun openAtelierApp(id: String) {
         if ((nav.current as? Screen.AtelierApp)?.id != id) nav.push(Screen.AtelierApp(id))
