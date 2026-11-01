@@ -128,10 +128,12 @@ One rule: **nothing under `com.bleural.croissant` outside `ui/` imports
 - `audio/` capture, cues and ringtone; `data/` the JSON stores; `net/` the server
   protocol; `setup/` the first-run onboarding; `wifi/`, `bluetooth/`, `tailscale/`,
   `esim/` the device pages' back ends; `offline/` the offline Translator; `update/` updates
-  from GitHub releases; `atelier/` Atelier's apps (docs/atelier.md): each app's `app.js`
-  in a QuickJS of its own (`AppRuntime.kt`, with `assets/atelier/prelude.js`), the pieces
-  it returns (`Pieces.kt`) for the design to draw, the installed apps, adding one from
-  GitHub, and the bridge to the chat model and the internet. An app's glyph is a Lucide icon
+  from GitHub releases; `backup/` backup and restore (the archive, its restore at the
+  process start in `CroissantApp`, the server's `/backups`, the CLI's receiver);
+  `atelier/` Atelier's apps (docs/atelier.md): each app's `app.js` in a QuickJS of its
+  own (`AppRuntime.kt`, with `assets/atelier/prelude.js`), the pieces it returns
+  (`Pieces.kt`) for the design to draw, the installed apps, adding one from GitHub, and the
+  bridge to the chat model and the internet. An app's glyph is a Lucide icon
   (`assets/lucide/`, written by `scripts/lucide.py`).
 - Ask's prompt is the device's (server/README.md, "The prompt"). `assets/ask/catalog.json`
   holds Ask's built-in tools (the device's, the server's two, `"runs": "server"`, then `tape_ask`), the
@@ -188,7 +190,9 @@ unlocked: `reminders.json`, `events.json`, `timers.json`, `translations.json`,
 `conversations.json`, `prompts.json` (Ask's prompt variants), `scores.json` (the model test's last scores), `providers.json`, `keys.json` (sealed) and
 `listings.json` (the C1's providers), `usage.jsonl` and `prices.json` (its count and prices), and the `photos/`, `generated/`, `recordings/` and `atelier/apps/<id>/`
 folders (an Atelier app's `croissant.json`, `croissant.js`, `source.json`, `state.json`, in a folder named by its id). Each
-store is a JSON file rewritten through a temp file and a rename. The offline
+store is a JSON file rewritten through a temp file and a rename. A backup carries all of it, the keys
+opened, but the font, the update and its own folders: `restore/` (a zip waiting for the next start, staged there),
+`backup-out/` (the CLI's) and `restore-outcome.json` (what the last restore came to). The offline
 Translator's models are in `/data/data/com.bleural.croissant/files/offline/`, pushed by
 `device/offline-models/push.sh`.
 

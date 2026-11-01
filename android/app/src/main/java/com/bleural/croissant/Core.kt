@@ -51,6 +51,7 @@ import com.bleural.croissant.audio.Sound
 import com.bleural.croissant.atelier.Atelier
 import com.bleural.croissant.atelier.BadApp
 import com.bleural.croissant.atelier.DeviceBridge
+import com.bleural.croissant.backup.Backups
 import com.bleural.croissant.bluetooth.BluetoothRepo
 import com.bleural.croissant.data.AskCatalog
 import com.bleural.croissant.data.AskPrompt
@@ -252,6 +253,9 @@ class Core(
 
     /** An install under way: the side button, the wheel, sleep and power are refused until it is done. */
     val updating: Boolean get() = update.ui.value.locked
+
+    /** Settings > Device > backup (backup/Backups.kt). */
+    val backups = Backups(activity, scope) { server }
 
     // ---- settings: persisted in Prefs, applied to the device ---------------
 

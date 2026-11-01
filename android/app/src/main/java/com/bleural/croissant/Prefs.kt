@@ -59,6 +59,7 @@ object Prefs {
     private const val KEY_WHEEL_PINS = "wheel_pins"
     private const val KEY_WHEEL_AGENTS = "wheel_agents"
     private const val KEY_SOUND_PACK = "sound_pack"
+    private const val KEY_BACKUP_LAST = "backup_last"
 
     /**
      * The emulator reaches the Mac on the host-loopback alias. An R1 has no server until its
@@ -341,4 +342,31 @@ object Prefs {
     fun setSetup(ctx: Context, finished: Boolean, skipped: String) {
         sp(ctx).edit().putBoolean(KEY_SETUP_FINISHED, finished).putString(KEY_SETUP_SKIPPED, skipped).apply()
     }
+
+    /** Every value in the settings file as stored, for a backup (backup/ArchiveMaker.kt). */
+    fun values(ctx: Context): Map<String, Any?> = sp(ctx).all
+
+    /**
+     * The settings file replaced by [values] whole, a restore's (backup/RestoreApplier.kt):
+     * written synchronously, since it runs at the start, before anything reads a setting.
+     * Throws [IllegalArgumentException] for a value SharedPreferences cannot hold; false when
+     * the file could not be written.
+     */
+    fun replaceValues(ctx: Context, values: Map<String, Any>): Boolean {
+        val e = sp(ctx).edit().clear()
+        for ((k, v) in values) when (v) {
+            is String -> e.putString(k, v)
+            is Int -> e.putInt(k, v)
+            is Long -> e.putLong(k, v)
+            is Float -> e.putFloat(k, v)
+            is Boolean -> e.putBoolean(k, v)
+            is Set<*> -> e.putStringSet(k, v.map { it as? String ?: throw IllegalArgumentException("the setting $k holds a set with a non-text item") }.toSet())
+            else -> throw IllegalArgumentException("the setting $k holds a ${v.javaClass.simpleName}")
+        }
+        return e.commit()
+    }
+
+    /** This C1's last backup to a server (backup/BackupUi.kt `LastBackup`), as JSON: a `backup_` key, so a restore never replaces it. */
+    fun backupLast(ctx: Context): String? = sp(ctx).getString(KEY_BACKUP_LAST, null)
+    fun setBackupLast(ctx: Context, json: String) { sp(ctx).edit().putString(KEY_BACKUP_LAST, json).apply() }
 }
