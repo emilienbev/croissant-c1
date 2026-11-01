@@ -8,7 +8,7 @@ from websockets.http11 import Request
 
 from croissant_server.app import REFUSED, gated
 
-TOKEN = "s3cret-token_0123456789abcdefghij"
+TOKEN = "lan-test-token-" + "0" * 24
 
 
 class FakeConnection:
