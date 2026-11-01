@@ -153,7 +153,7 @@ croissant app install croissant-X.Y.Z.apk                # an APK
 croissant app install ~/Development/croissant-c1         # or built from a checkout of the source
 ```
 
-An update must be signed with the same key as the install. Switching means uninstalling the app, which removes it as Device Owner.
+An update must be signed with the same key as the install. Switching means uninstalling the app, which removes it as Device Owner. Back the C1 up first (Settings > Device > backup, or `croissant backup`) and restore it after.
 
 The CLI itself: `croissant upgrade` (installed from a release), or `git pull` in a checkout.
 

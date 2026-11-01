@@ -11,5 +11,5 @@ Network, server, models and the device.
 - **esim** adds and switches profiles. **tailscale** signs in to your tailnet.
 - **server** shows the computer the C1 talks to and what runs on it. Tap its card to pick another.
 - **ask** picks Ask's model and prompt, providers, and the speech and picture models. **usage** shows what they cost over 30 days.
-- **device** has sound, display, tones and battery. Its setup row runs the first setup again without wiping anything.
+- **device** has sound, display, tones and battery. Its backup row sends everything the C1 keeps, provider keys included, to croissant-server and restores a backup from there (`croissant backup` and `croissant restore` do the same over USB). Its setup row runs the first setup again without wiping anything.
 - **update** installs a new version of Croissant. **power** sleeps, restarts or powers off the C1.
