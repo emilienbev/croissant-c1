@@ -66,7 +66,8 @@ on every request. Without it the server answers 401 and the C1 says to scan the 
 - The token is kept in `~/.croissant/lan-token`, so a paired C1 stays paired across
   restarts. Delete the file to shut every paired C1 out, then scan the new code.
 - The settings page answers on loopback and the tailnet only: a browser cannot send the token.
-- The LAN is plain HTTP, so audio and transcripts cross it unencrypted. The tailnet does not.
+- The LAN is plain HTTP, so audio, transcripts and backups (provider keys included) cross it
+  unencrypted. The tailnet does not.
 - If the router gives this machine another address, scan the new code. A fixed address for
   it in the router's settings avoids that.
 
@@ -126,7 +127,38 @@ Code: `croissant_server/providers.py`, `catalog.py`, `pictures.py`, `prices.py`.
 Nothing the device says stays on the server. A hold is transcribed and forgotten.
 `data/` holds only a picture until the device collects it, and `usage.jsonl` (which model, how many tokens, seconds or pictures, never what
 was said, 60 days). `--debug-keep` turns on a transcript log, the utterance WAVs (in
-`captures/`) and copies of recordings.
+`captures/`) and copies of recordings. The one exception is a backup the C1 sends on purpose
+(next section).
+
+## Backups
+
+A C1 can send its whole state here and take it back. The C1 makes and applies the zip, the
+server only keeps it.
+
+- **Where:** `~/.croissant/backups` (`Config.backups_dir`), mode 700, made when the first one
+  arrives. Each zip is mode 600. It holds the C1's settings, files and provider keys (opened),
+  so treat the folder like the keys it holds.
+- **Names:** this machine's clock, `2026-11-01-1402.zip`, and `-2`, `-3` for more in the same
+  minute. A name outside `YYYY-MM-DD-HHMM[-N].zip` is never read or served.
+- **Never changed:** the server adds to the folder. It never edits or deletes a backup, and
+  an upload that fails leaves nothing behind. To delete one, delete the file.
+
+| Route | |
+|---|---|
+| `GET /backups` | `{"folder": "~/.croissant/backups", "backups": [...]}`, newest first. Each has `name`, `size` and, from the zip's `manifest.json`, `app`, `version`, `versionCode`, `serial` and `date`. A zip whose manifest cannot be read has an `error` saying why and no version. Unfinished `.part` files are not listed |
+| `GET /backups/<name>` | the zip, `application/zip`, or 404. The server holds it whole in memory while it sends it |
+| WebSocket `/backup` | an upload, below |
+
+An upload is `{"type":"begin","size":N,"sha256":"<hex>"}`, answered `{"type":"ready","name":"..."}`.
+The C1 then sends binary chunks of at most 1 MiB (`Config.backup_chunk_bytes`), the next only
+after the `{"type":"got","bytes":<total so far>}` for the last. When `size` bytes have come the
+hash is checked, the `.part` becomes the backup and the answer is `{"type":"saved","name":"...",
+"folder":"~/.croissant/backups"}`. Anything wrong is `{"type":"error","error":"..."}` and a
+close, with the numbers in the text: a size over `Config.backup_max_bytes` (2 GiB) at `begin`, a
+full disk (`the disk on this machine is full`), or `the backup arrived damaged` with the bytes
+and sha256 it got and the ones it was told. A connection that closes before `saved` drops the
+`.part`, which is how the C1 cancels. A server from before backups closes `/backup` with 1008
+`unknown path` and has no `/backups` route.
 
 ## The protocol
 
@@ -141,6 +173,8 @@ fetched over HTTP on the same port (`GET`/`DELETE /generated/<id>`). So are a we
 (`GET /search?q=`, the digest as text), the model lists and the Ask tools this server runs
 (`GET /providers`, its `tools`: `image_generate` when something can draw, `web_search`
 when the search is on), usage (`GET /usage`) and the version (`GET /version`, also after `croissant-server ok` at `GET /`).
+A backup goes up on `/backup` in chunks, each answered, and is listed and fetched with
+`GET /backups` and `GET /backups/<name>` ("Backups", above).
 
 An app from before 2026-10-16 sent Ask's holds with their prompt and tools, Transform and
 Translator holds, an Atelier app's `ask` and the model test's `bench` here; each is now

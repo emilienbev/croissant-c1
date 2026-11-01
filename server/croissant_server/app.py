@@ -20,6 +20,7 @@ from websockets.datastructures import Headers
 from websockets.http11 import Request, Response
 
 from . import __version__, pairing, settings, stt_worker
+from .backups import Backups
 from .config import APPLE_SILICON, IMAGE_MODELS, Config, trusted
 from .costs import Costs
 from .history import History
@@ -58,8 +59,28 @@ async def _digest(search: WebSearch, query: str) -> Response:
     return _response(http.HTTPStatus.OK, (await search.digest(query)).encode(), "text/plain; charset=utf-8")
 
 
+async def _backups_list(backups: Backups) -> Response:
+    """`GET /backups`'s answer. Each zip is opened to read its manifest, off the event loop."""
+    try:
+        found = await asyncio.to_thread(backups.listing)
+    except OSError as e:
+        return _json(http.HTTPStatus.INTERNAL_SERVER_ERROR, error=f"could not list {backups.folder}: {e}")
+    return _json(http.HTTPStatus.OK, folder=backups.shown, backups=found)
+
+
+async def _backup_zip(backups: Backups, name: str) -> Response:
+    """`GET /backups/<name>`'s answer: the zip, or 404 for a name that is not a backup of ours."""
+    try:
+        data = await asyncio.to_thread(backups.read, name)
+    except OSError as e:
+        return _json(http.HTTPStatus.INTERNAL_SERVER_ERROR, error=f"could not read {name[:80]}: {e}")
+    if data is None:
+        return _json(http.HTTPStatus.NOT_FOUND, error=f"no such backup: {name[:80]}")
+    return _response(http.HTTPStatus.OK, data, "application/zip")
+
+
 def http_routes(generations: Generations | None, costs: Costs, search: WebSearch | None = None,
-                tools: tuple[str, ...] = ()):
+                tools: tuple[str, ...] = (), backups: Backups | None = None):
     """
     The plain-HTTP side of the same port, answered before the WebSocket upgrade.
 
@@ -73,7 +94,10 @@ def http_routes(generations: Generations | None, costs: Costs, search: WebSearch
     so the device offers (`image_generate` when something can draw, by the `generate`
     frame; `web_search` while the search is on); `GET /usage` the last 30 days of use
     (costs.py), and `/settings` the page that edits the providers (settings.py), which then
-    talks on `/config`. Everything else falls through and upgrades.
+    talks on `/config`. `GET /backups` lists the C1 backups kept on this machine, newest
+    first, each with what its manifest says (backups.py), and `GET /backups/<name>` is one
+    zip; a name that is not `YYYY-MM-DD-HHMM[-N].zip` is a 404. The upload is a WebSocket,
+    `/backup`. Everything else falls through and upgrades.
     """
 
     def process(connection: ServerConnection, request: Request) -> Response | Awaitable[Response] | None:
@@ -101,6 +125,12 @@ def http_routes(generations: Generations | None, costs: Costs, search: WebSearch
                 if data is None:
                     return _json(http.HTTPStatus.NOT_FOUND, error="no such font")
                 return _response(http.HTTPStatus.OK, data, "font/ttf")
+            if path.rstrip("/") == "/backups" or path.startswith("/backups/"):
+                if backups is None:
+                    return _json(http.HTTPStatus.NOT_FOUND, error="backups are not kept by this server")
+                if path.rstrip("/") == "/backups":
+                    return _backups_list(backups)
+                return _backup_zip(backups, path.removeprefix("/backups/"))
 
         m = GENERATED.match(path)
         if m is None:
@@ -232,6 +262,9 @@ async def run(cfg: Config) -> None:
     history = History(data_dir / "history.jsonl" if cfg.debug_keep else None)
     capture_dir = Path(cfg.capture_dir).resolve() if cfg.debug_keep else None
     recordings_dir = data_dir / "recordings" if cfg.debug_keep else None
+    # The C1's backups (backups.py) live in the owner's ~/.croissant, not under data_dir.
+    backups = Backups(Path(cfg.backups_dir).expanduser(), cfg.backup_max_bytes, cfg.backup_chunk_bytes,
+                      cfg.backup_manifest_max_bytes)
 
     # The recordings' worker is warmed in the background so the first recording does
     # not pay the load.
@@ -243,6 +276,9 @@ async def run(cfg: Config) -> None:
     async def handler(ws: ServerConnection) -> None:
         if ws.request.path.rstrip("/") == "/config":
             await settings.handle(ws, providers)
+            return
+        if ws.request.path.rstrip("/") == "/backup":
+            await backups.receive(ws)
             return
         if ws.request.path.rstrip("/") != cfg.path.rstrip("/"):
             await ws.close(1008, "unknown path")
@@ -261,8 +297,8 @@ async def run(cfg: Config) -> None:
         handler,
         cfg.hosts,
         cfg.port,
-        process_request=gated(http_routes(generations, costs, search, tools=ask_tools), lan_token),
-        max_size=4 * 1024 * 1024,
+        process_request=gated(http_routes(generations, costs, search, tools=ask_tools, backups=backups), lan_token),
+        max_size=4 * 1024 * 1024,   # a backup's chunk (Config.backup_chunk_bytes) has to fit
         ping_interval=20,
     ):
         for h in cfg.hosts:

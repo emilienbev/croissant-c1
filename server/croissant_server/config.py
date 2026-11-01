@@ -31,6 +31,9 @@ LAN = tuple(ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "19
 # ~/.croissant, so a C1 paired over the LAN stays paired across restarts.
 LAN_TOKEN_PATH = Path.home() / ".croissant" / "lan-token"
 
+# Where a C1's backups are kept (backups.py), in the same ~/.croissant.
+BACKUPS_DIR = Path.home() / ".croissant" / "backups"
+
 
 def _local_ipv4() -> list[str]:
     """Every local IPv4 address, as ifconfig lists them."""
@@ -229,9 +232,20 @@ class Config:
     debug_keep: bool = False
     # Where the utterance WAVs go when they are kept. Relative to the cwd.
     capture_dir: str = "captures"
-    # history.jsonl, the recordings, the generated pictures and, later, the device
-    # backups. Relative to the cwd.
+    # history.jsonl, the recordings and the generated pictures. Relative to the cwd.
     data_dir: str = "data"
+
+    # The folder of a C1's backups (backups.py): mode 700, made when the first arrives.
+    # The server only adds to it; it never changes or deletes a backup.
+    backups_dir: Path = BACKUPS_DIR
+    # The most an upload may announce. A backup is about a megabyte on a used C1; its photos
+    # and recordings are what grow it.
+    backup_max_bytes: int = 2 * 1024 ** 3
+    # The most one binary chunk of an upload may hold. It has to fit the WebSocket's
+    # max_size (app.py, 4 MiB), or the connection closes on the frame before it is read.
+    backup_chunk_bytes: int = 1024 * 1024
+    # The most of a zip's manifest.json that is read to list it.
+    backup_manifest_max_bytes: int = 1024 * 1024
 
     def image(self, name: str | None = None, options: dict | None = None) -> ImageModel:
         """
