@@ -6,6 +6,8 @@
   ./croissant boot-screens   render the boot logo and animation for a name
   ./croissant font           take the owner's Power Grotesk and put it on the R1
   ./croissant sounds         pick the interface sounds, hearing each, and put them on an installed R1
+  ./croissant backup         the app's settings and files from an installed R1, kept on this computer
+  ./croissant restore        a backup from this computer back into the app on an installed R1
   ./croissant fetch          download and check the proven files (and mtkclient) ahead of time
   ./croissant atelier new    a small Atelier app to start from, in a new folder, with its QR code
   ./croissant atelier run    an Atelier app from a folder onto the C1, again on every save
@@ -16,7 +18,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import __version__, apk, artifacts, atelier, brand, device, font, gsi, magisk, paths, plan, preloader, prereqs, sounds, stages, ui, upgrade
+from . import __version__, apk, artifacts, atelier, backup, brand, device, font, gsi, magisk, paths, plan, preloader, prereqs, restore, sounds, stages, ui, upgrade
 from .tools import Adb, Fastboot, binaries
 
 FONT_HELP = 'the Power Grotesk zip from BeFonts, or a folder holding its TTFs'
@@ -26,6 +28,14 @@ SERIAL_HELP = 'which R1, when more than one is plugged in'
 def _tools(serial):
     adb_exe, fb_exe = binaries()
     return Adb(adb_exe, serial), Fastboot(fb_exe, serial)
+
+
+def _installed_r1(adb, fb, serial, what):
+    """The R1 on USB, booted and with the app on it, or the run stops."""
+    where = device.locate(adb, fb, serial)
+    if where.mode != 'android' or not device.on_gsi(adb) or not adb.sh(f'pm path {paths.PACKAGE}', check=False):
+        ui.fail(f'{what} needs an installed R1, booted, on USB. For a new one: {paths.COMMAND} install')
+    return where
 
 
 def cmd_install(args):
@@ -79,6 +89,8 @@ def cmd_install(args):
 
     stages.host(ctx, will_flash)
     if will_flash:
+        if on and not args.no_backup:
+            backup.before_erase(adb)
         stages.flash(ctx, where)
         stages.first_boot(ctx)
     ctx.remember(name=p.name, offline_models=p.offline_models, update_repo=p.update_repo, sounds=p.sounds)
@@ -231,6 +243,20 @@ def cmd_sounds(args):
     ctx.remember(sounds=ctx.plan.sounds)
 
 
+def cmd_backup(args):
+    """The app's own backup, over USB, kept in ~/.croissant/backups."""
+    adb, fb = _tools(args.serial)
+    _installed_r1(adb, fb, args.serial, 'backup')
+    backup.run(adb)
+
+
+def cmd_restore(args):
+    """A backup from ~/.croissant/backups (or a path) back into the app, which applies it as it starts."""
+    adb, fb = _tools(args.serial)
+    where = _installed_r1(adb, fb, args.serial, 'restore')
+    restore.run(adb, where.serial, args.path)
+
+
 def cmd_atelier_new(args):
     atelier.new(args)
 
@@ -284,6 +310,8 @@ def main():
     i.add_argument('--offline-models', action='store_true',
                    help='also push the offline Translator models (1.4 GB, needs the NDK)')
     i.add_argument('--reflash', action='store_true', help='flash LineageOS even if the R1 already runs it (erases it)')
+    i.add_argument('--no-backup', action='store_true',
+                   help='with a reflash: skip the backup of the C1 offered first (made without asking when nothing can be asked)')
     i.add_argument('--serial', help=SERIAL_HELP)
     i.add_argument('--yes', action='store_true', help='do not ask before erasing the R1')
     i.set_defaults(fn=cmd_install)
@@ -322,6 +350,23 @@ def main():
     sn.add_argument('pack', nargs='?', metavar='PACK', help=f'one of {", ".join(sounds.PACKS)}, to skip the picker')
     sn.add_argument('--serial', help=SERIAL_HELP)
     sn.set_defaults(fn=cmd_sounds)
+
+    bk = sub.add_parser('backup', help='the app\'s settings and files from an installed R1, kept on this computer',
+                        description='Asks the app for a zip of its settings, provider keys and files, copies it here, '
+                                    'checks it against its manifest and deletes the copies on the C1. It goes in '
+                                    '~/.croissant/backups, readable by you only, since it holds the keys in clear. '
+                                    'Needs the app and root for the adb shell.')
+    bk.add_argument('--serial', help=SERIAL_HELP)
+    bk.set_defaults(fn=cmd_backup)
+
+    rs = sub.add_parser('restore', help='a backup from this computer back into the app on an installed R1',
+                        description='Lists the backups in ~/.croissant/backups, newest first, with their version and '
+                                    'whether they are from this C1 or another. The zip is checked, put in the '
+                                    'app\'s restore folder, and the app starts again to apply it. The app refuses a '
+                                    'backup from a newer version. What it says is printed.')
+    rs.add_argument('path', nargs='?', metavar='PATH', help='a backup zip to restore, to skip the list')
+    rs.add_argument('--serial', help=SERIAL_HELP)
+    rs.set_defaults(fn=cmd_restore)
 
     f = sub.add_parser('fetch', help='download and check the proven files (and mtkclient) ahead of time')
     f.add_argument('--seed', nargs='*', help='directories that may already hold the files')
@@ -387,7 +432,7 @@ def main():
     up.add_argument('--to', metavar='X.Y.Z', help='that release instead, older ones too')
     up.set_defaults(fn=upgrade.run)
 
-    for c in (i, d, u, t, sn, ar):
+    for c in (i, d, u, t, sn, ar, bk, rs):
         c.add_argument('--package', metavar='ID',
                        help=f'the app\'s application id (default {paths.PACKAGE}, from android/gradle.properties)')
 

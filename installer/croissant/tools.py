@@ -111,8 +111,11 @@ class Adb:
     def getprop(self, name: str) -> str:
         return self.sh(f'getprop {name}', check=False)
 
-    def push(self, local, remote: str):
-        self.run('push', str(local), remote, timeout=600)
+    def push(self, local, remote: str, timeout=600):
+        self.run('push', str(local), remote, timeout=timeout)
+
+    def pull(self, remote: str, local, timeout=600):
+        self.run('pull', remote, str(local), timeout=timeout)
 
     def exec_out(self, cmd: str, timeout=300) -> bytes:
         return subprocess.run(self._argv('exec-out', cmd), capture_output=True, timeout=timeout).stdout

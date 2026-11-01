@@ -57,6 +57,17 @@ PACKAGE = _application_id()
 
 def admin() -> str:
     return f'{PACKAGE}/{NAMESPACE}.AdminReceiver'
+
+
+def backup_receiver() -> str:
+    return f'{PACKAGE}/{NAMESPACE}.backup.BackupReceiver'
+
+
+def app_files() -> str:
+    """The app's device-protected files dir, where it starts before the user unlocks the C1."""
+    return f'/data/user_de/0/{PACKAGE}/files'
+
+
 STAGE = '/data/local/tmp'   # where files land on the device before a root script moves them
 
 

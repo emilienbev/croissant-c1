@@ -98,10 +98,11 @@ release, or an APK file), which interface sounds (each pack plays its demo on th
 the arrows move onto it: afplay on a Mac, ffplay elsewhere), and extras. Then it shows the plan and asks to go ahead. It ends with "Done", and the R1's own
 setup takes over.
 
-- Erases the R1 (after you type `erase`). Everything else it asks for is physical: turn
-  the R1 off, unplug and replug it when told, keep it plugged in and hold the side button
-  about 15 s after the preloader read, and scroll the wheel up if the R1 asks to confirm
-  the unlock.
+- Erases the R1 (after you type `erase`). On an R1 that already runs Croissant it first offers
+  a backup of the app's data (`backup`, below), yes by default. Everything else it asks for is
+  physical: turn the R1 off, unplug and replug it when told, keep it plugged in and hold the
+  side button about 15 s after the preloader read, and scroll the wheel up if the R1 asks to
+  confirm the unlock.
 - Everything it keeps stays in this checkout, in `cache/` (gitignored, `CROISSANT_CACHE`
   moves it): about 1.1 GB downloaded once (the GSI, Magisk, tailscale, mtkclient, and
   platform-tools when this machine has no recent adb), 3.3 GB with the GSI unpacked, plus
@@ -130,6 +131,7 @@ Every question has a flag, and `--no-input` (or no terminal) asks nothing:
 | `--tailscale latest\|VERSION` | latest | another tailscale (the Tailscale page upgrades it later) |
 | `--offline-models` | off | the offline Translator (1.4 GB, needs the NDK) |
 | `--reflash` | off | flash LineageOS again on an R1 that already runs it (erases it) |
+| `--no-backup` | off | skip the backup offered before a reflash (with `--no-input` it is made without asking, unless this is given) |
 | `--serial S` | the only one | which R1 |
 | `--yes` | | erase without asking (needed with `--no-input`) |
 
@@ -141,6 +143,18 @@ Other commands:
 - `./croissant app install APK|DIR`: a chosen app onto an installed R1, in place of the one
   there: an `.apk`, or a checkout of the source (its root or `android/`) built first. The C1
   otherwise updates itself over the air (Settings > update).
+- `./croissant backup`: the app's settings, provider keys and files from an installed R1, as one
+  zip in `~/.croissant/backups`, named by the date and time (`2026-11-01-1402.zip`) and readable
+  by you only, since it holds the keys in clear. The app builds it when asked as root, the CLI
+  copies it, checks every file against the zip's manifest and deletes the copies on the C1. It
+  needs the app on the R1 and root for the adb shell. An app older than backups, or one that is
+  not running, is said not to have answered. The offline Translator's models are not in it
+  (`device/offline-models/push.sh` puts them back). croissant-server keeps the same folder.
+- `./croissant restore [PATH]`: lists `~/.croissant/backups`, newest first, with each one's date,
+  version and whether it came from this R1 or another. The one picked (or PATH) is checked
+  against its manifest, put in the app's `restore/` folder, and the app starts again to apply it.
+  The app refuses a backup from a newer version, and what it says is printed. If it says
+  nothing within three minutes the command fails, saying what it saw.
 - `./croissant boot-screens NAME`: the logo and animation, to look at, in `cache/boot-screens`.
 - `./croissant fetch --seed <dir>`: download ahead, mtkclient included. `--seed` reuses
   files already on this machine.
