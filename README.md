@@ -106,6 +106,12 @@ It's all open source and made to be changed. [Write your own app](docs/atelier.m
 5. On the R1, Settings > ask: add a provider and its key under providers if you use one,
    then pick the models (with the server and Ollama, its defaults need no pick).
 
+> [!NOTE]
+> Planning to change the code? Fork this repository and follow [SIGNING.md](SIGNING.md)
+> before you install. Your C1 then updates from your own builds and keeps its data. A C1
+> only takes updates signed with the key it was installed with, so moving between the
+> releases here and builds of your own erases its data.
+
 ## Backend
 
 - Ask runs on the C1: its prompt, its tools and every call to a chat model. Each model is
@@ -182,6 +188,7 @@ new` makes one to start from. The format and every call:
 ## Read more
 
 - [installer/README.md](installer/README.md): every installer command and flag.
+- [SIGNING.md](SIGNING.md): a fork with your own key, so your C1 updates from your builds.
 - [docs/atelier.md](docs/atelier.md): writing an Atelier app.
 - [server/README.md](server/README.md): models, providers, flags.
 - [android/README.md](android/README.md): building the app, Device Owner, code layout.
