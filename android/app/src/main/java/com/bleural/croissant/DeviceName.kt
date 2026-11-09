@@ -13,8 +13,8 @@ import java.text.Normalizer
 object DeviceName {
     const val MAX = 24
     private const val KEY = "device_name"
-    // (?U): \w takes letters beyond ASCII, as Python's does in the installer.
-    private val ALLOWED = Regex("(?U)[\\w .'&+-]+")
+    // Python's \w in the installer, spelled out: Android's regex refuses (?U), the JVM's \w is ASCII only.
+    private val ALLOWED = Regex("[\\p{L}\\p{M}\\p{N}_ .'&+-]+")
     private val ASCII = Regex("[A-Za-z0-9]")
 
     /** Why [name] cannot be the device name, or null. */
