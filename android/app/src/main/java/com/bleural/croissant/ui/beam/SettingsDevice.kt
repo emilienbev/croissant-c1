@@ -51,6 +51,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bleural.croissant.BatteryTracker
 import com.bleural.croissant.Core
+import com.bleural.croissant.DeviceName
 import com.bleural.croissant.Idle
 import com.bleural.croissant.ui.glideBy
 import com.bleural.croissant.ui.IdleWords
@@ -97,10 +98,11 @@ internal fun SettingsDevicePages(
         Screen.Device -> {
             val battery by core.battery.items.collectAsStateWithLifecycle()
             val life = remember(battery) { BatteryStats.lifeMinutes(battery)?.let(BatteryStats::fmt) }
-            DevicePage(core.volume, core.muted, core.brightness, life, Designs.label(core.look), core.tones, onOpen = nav::push, onSetup = { core.openSetup() }, onBack = nav::pop)
+            DevicePage(core.deviceName, core.volume, core.muted, core.brightness, life, Designs.label(core.look), core.tones, onOpen = nav::push, onSetup = { core.openSetup() }, onBack = nav::pop)
         }
         Screen.Sound -> LevelPage("sound", "volume", Glyphs.Sound, core.volume, step = 1, onChange = core::saveVolume, onBack = nav::pop)
         Screen.Display -> LevelPage("display", "brightness", Glyphs.Display, core.brightness, step = 5, onChange = core::saveBrightness, onBack = nav::pop)
+        Screen.Name -> NameEditPage(core, nav)
         Screen.Battery -> BatteryListPage(core.rest, core.sleep, onOpen = nav::push, onBack = nav::pop)
         Screen.Rest -> PickPage("rest", null, Idle.OPTIONS, { Idle.label(it).lowercase() }, core.rest, note = IdleWords.REST, onPick = { core.saveRest(it); nav.pop() }, onBack = nav::pop)
         Screen.Sleep -> PickPage("sleep", null, Idle.OPTIONS, { Idle.label(it).lowercase() }, core.sleep, note = IdleWords.SLEEP, onPick = { core.saveSleep(it); nav.pop() }, onBack = nav::pop)
@@ -179,17 +181,17 @@ private fun RowsPage(word: String, count: Int, onBack: () -> Unit, label: String
 }
 
 /** Design is there only with a second look to pick: with one, its page would offer nothing. */
-private val DEVICE_ROWS = listOf(Screen.Sound, Screen.Display, Screen.Design, Screen.Tones, Screen.Battery)
+private val DEVICE_ROWS = listOf(Screen.Name, Screen.Sound, Screen.Display, Screen.Design, Screen.Tones, Screen.Battery)
     .filter { it != Screen.Design || Designs.looks.size > 1 }
 
 /**
- * Settings > Device: sound, display, design, tones and battery, glyph rows as Settings' with what
- * each is set to (the design and the tones by their own names); then, apart, the two that concern
+ * Settings > Device: name, sound, display, design, tones and battery, glyph rows as Settings' with
+ * what each is set to (the name, the design and the tones by their own names); then, apart, the two that concern
  * the whole C1, in the order of a move: backup (no value: its page says when the last one was) and
  * setup, which runs the first setup again from hello without wiping anything.
  */
 @Composable
-internal fun DevicePage(volume: Int, muted: Boolean, brightness: Int, batteryLife: String?, design: String, tones: String, onOpen: (Screen) -> Unit, onSetup: () -> Unit, onBack: () -> Unit) {
+internal fun DevicePage(name: String?, volume: Int, muted: Boolean, brightness: Int, batteryLife: String?, design: String, tones: String, onOpen: (Screen) -> Unit, onSetup: () -> Unit, onBack: () -> Unit) {
     RowsPage("device", DEVICE_ROWS.size + 2, onBack) { i, rows ->
         if (i == DEVICE_ROWS.size) {
             Column {
@@ -204,6 +206,7 @@ internal fun DevicePage(volume: Int, muted: Boolean, brightness: Int, batteryLif
         }
         val s = DEVICE_ROWS[i]
         val (glyph, title, value) = when (s) {
+            Screen.Name -> Triple(Glyphs.Device, "name", name)
             Screen.Sound -> Triple(Glyphs.Sound, "sound", if (muted) "muted" else volume.toString())
             Screen.Display -> Triple(Glyphs.Display, "display", brightness.toString())
             Screen.Design -> Triple(Glyphs.Settings, "design", design)
@@ -212,6 +215,31 @@ internal fun DevicePage(volume: Int, muted: Boolean, brightness: Int, batteryLif
         }
         ShelfRow(title, S, focused = rows.focus == i, onClick = { rows.focus = i; onOpen(s) }, glyph = glyph, value = value, chevron = true, edge = shelfEdge(i, DEVICE_ROWS.size))
     }
+}
+
+/**
+ * Settings > Device > name: the device's own name in the field, done on the keys; under it the
+ * name it takes on the tailnet, or why not in danger. Saved, it steps back to Device.
+ */
+@Composable
+private fun NameEditPage(core: Core, nav: NavState) {
+    var typed by remember { mutableStateOf(core.deviceName.orEmpty()) }
+    var why by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    fun done() {
+        val n = typed.trim()
+        if (n == core.deviceName) { nav.pop(); return }
+        if (saving) return
+        saving = true
+        scope.launch {
+            why = core.renameDevice(n)
+            saving = false
+            if (why == null) nav.pop(Sound.Commit)
+        }
+    }
+    val tailnet = DeviceName.hostname(typed.trim()).ifEmpty { null }?.let { "on the tailnet as $it" }
+    NamePage("name", typed, { typed = it; why = null }, null, why ?: tailnet, why != null, nav::pop, ::done)
 }
 
 /**

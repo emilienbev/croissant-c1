@@ -102,7 +102,9 @@ It's all open source and made to be changed. [Write your own app](docs/atelier.m
    ```
 
    The R1's first setup asks for Wi-Fi, your Tailscale login, the server (it finds it on
-   the tailnet; skip it to run on cloud providers alone) and the time zone.
+   the tailnet; skip it to run on cloud providers alone) and the time zone. It joins the
+   tailnet under the device name the installer asked for ("Croissant C1" is `croissant-c1`),
+   which Settings > Device > name changes on both.
 5. On the R1, Settings > ask: add a provider and its key under providers if you use one,
    then pick the models (with the server and Ollama, its defaults need no pick).
 
