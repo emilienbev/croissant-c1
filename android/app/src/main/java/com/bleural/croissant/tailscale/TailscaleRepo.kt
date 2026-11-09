@@ -96,7 +96,11 @@ data class Peer(val name: String, val ip: String, val online: Boolean)
  * Talks to the boot-time tailscaled through its CLI over root,
  * since its socket is root-only. `ts` is the wrapper that knows the socket path.
  */
-class TailscaleRepo(private val serverHost: () -> String, private val serverPort: () -> Int, private val cache: File) {
+/** [hostname]: the R1's name on the tailnet, from its device name; null leaves it to tailscale. */
+class TailscaleRepo(
+    private val serverHost: () -> String, private val serverPort: () -> Int,
+    private val hostname: () -> String?, private val cache: File,
+) {
 
     companion object {
         private const val TAG = "Tailscale"
@@ -108,8 +112,6 @@ class TailscaleRepo(private val serverHost: () -> String, private val serverPort
         private const val LATEST_MS = 3_600_000L
         /** How long a restarted daemon has to come back: the boot script restarts it within 15 s. */
         private const val BACK_MS = 60_000L
-        /** A new R1's name on the tailnet; renamed from the admin console if wanted. */
-        const val HOSTNAME = "croissant-c1"
     }
 
     private val _state = MutableStateFlow(TailscaleUi())
@@ -163,14 +165,14 @@ class TailscaleRepo(private val serverHost: () -> String, private val serverPort
      * tailscale up / down. `up` after a logout blocks on the browser login, so it runs detached.
      * A node that is not logged in comes up with the flags a new node needs: the
      * tailnet's DNS and routes left alone (either would take over the R1's own network) and
-     * its name; a node that is only stopped keeps what it has, so a bare `up` is enough.
+     * its [hostname]; a node that is only stopped keeps what it has, so a bare `up` is enough.
      * An `up` still waiting for its login is left to it, so asking again never piles them up;
      * one that went with a restarted daemon is gone, and asking again replaces it.
      */
     fun setUp(up: Boolean) {
         _state.update { it.copy(busy = true) }
         val first = _state.value.let { it.needsLogin || it.backend == "NoState" }
-        val flags = if (first) " --accept-dns=false --accept-routes=false --hostname=$HOSTNAME" else ""
+        val flags = if (first) " --accept-dns=false --accept-routes=false" + (hostname()?.let { " --hostname=$it" } ?: "") else ""
         scope.launch {
             // `[.]` so the pattern does not match this command's own shell.
             if (up) Root.run("pgrep -f 'tailscaled[.]sock up' >/dev/null || nohup $TS up$flags >/dev/null 2>&1 &", 5)
@@ -179,6 +181,19 @@ class TailscaleRepo(private val serverHost: () -> String, private val serverPort
             refresh()
             _state.update { it.copy(busy = false) }
         }
+    }
+
+    /**
+     * The node's hostname made [want] when it is logged in and has another: after a rename in
+     * Settings, or an install that named the device anew. A name set in the admin console still
+     * wins on the tailnet, as long as its auto-generate switch is off. Blocks: call off the main thread.
+     */
+    fun keepHostname(want: String) {
+        refresh()
+        val s = _state.value
+        if (s.available != true || s.needsLogin || s.backend in setOf("", "NoState") || s.hostname == want) return
+        if (Root.run("$TS set --hostname=$want", 10) == null) Log.e(TAG, "set --hostname=$want refused, the tailnet keeps ${s.hostname}")
+        refresh()
     }
 
     /** Log the node out; the next `up` yields a login URL for whichever account you choose. */

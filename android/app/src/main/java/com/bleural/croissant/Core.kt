@@ -279,6 +279,19 @@ class Core(
     var batteryEvery by mutableIntStateOf(BatteryTracker.DEFAULT_EVERY_MS)
         private set
 
+    /** Settings > Device > Name: the device's own name ([DeviceName]); null when nothing set it. */
+    var deviceName by mutableStateOf<String?>(null)
+        private set
+
+    /** Renamed: written as root, then the tailnet's name follows. Why not, or null. */
+    suspend fun renameDevice(to: String): String? {
+        DeviceName.problem(to)?.let { return it }
+        if (!withContext(Dispatchers.IO) { DeviceName.write(to) }) return "not saved: su refused it"
+        deviceName = to
+        scope.launch(Dispatchers.IO) { tailscale.keepHostname(DeviceName.hostname(to)) }
+        return null
+    }
+
     /** The design and variant chosen in Settings. */
     var look by mutableStateOf(Look.DEFAULT)
         private set
@@ -410,7 +423,7 @@ class Core(
     // ---- repos and stores --------------------------------------------------
 
     val wifi by lazy { WifiRepo(activity) }
-    val tailscale by lazy { TailscaleRepo({ server.host }, { server.port }, activity.cacheDir) }
+    val tailscale by lazy { TailscaleRepo({ server.host }, { server.port }, { deviceName?.let(DeviceName::hostname) }, activity.cacheDir) }
     val bluetooth by lazy { BluetoothRepo(activity) }
     val esim by lazy { EsimRepo(activity.applicationContext) }
     /**
@@ -441,6 +454,7 @@ class Core(
     fun create() {
         isOwner = Kiosk.isOwner(activity)
         Kiosk.apply(activity)
+        deviceName = DeviceName.read(activity)
         server = Prefs.server(activity)
         prompts = promptsStore.prompts
         benchScores = scoresStore.scores
@@ -485,9 +499,14 @@ class Core(
             device.map { it.wifiConnected to it.tailnetUp }.distinctUntilChanged()
                 .collect { (wifiUp, tailnetUp) -> Links.report(wifiUp, tailnetUp) }
         }
-        // The tailnet up (a start without it, a drop): the server's list and the providers' asked again.
+        // The tailnet up (a start without it, a drop): the server's list and the providers' asked
+        // again, and the node's name kept to the device's (an install may have renamed it).
         scope.launch {
-            device.map { it.tailnetUp }.distinctUntilChanged().collect { if (it) relist() }
+            device.map { it.tailnetUp }.distinctUntilChanged().collect { up ->
+                if (!up) return@collect
+                relist()
+                deviceName?.let { n -> launch(Dispatchers.IO) { tailscale.keepHostname(DeviceName.hostname(n)) } }
+            }
         }
         scope.launch {
             update.ui.map { it.locked }.distinctUntilChanged().collect { locked ->
