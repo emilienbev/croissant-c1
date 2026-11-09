@@ -6,7 +6,7 @@ ask again (the answers become the defaults; flags still win).
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import apk, brand, paths, prereqs, sounds, ui, updates
+from . import apk, brand, devicename, paths, prereqs, sounds, ui, updates
 from . import gsi as builds
 
 UPDATE_QUESTION = 'Where should this C1 get its updates?'
@@ -22,6 +22,7 @@ APP_WHY = (f'Building from source needs Java {prereqs.JAVA_MIN}+ and the Android
 @dataclass
 class Plan:
     name: str = brand.DEFAULT_NAME
+    device_name: str = devicename.DEFAULT
     gsi: builds.Gsi = builds.PROVEN
     apk: str | None = None            # a file, a checkout, or apk.LATEST; None builds this checkout
     magisk: str | None = None         # None: pinned; a file, 'latest' or a release tag
@@ -38,6 +39,8 @@ def from_flags(args) -> tuple[Plan, set]:
     p, given = Plan(), set()
     if args.name is not None:
         p.name, _ = brand.check_name(args.name), given.add('name')
+    if args.device_name is not None:
+        p.device_name, _ = devicename.check(args.device_name), given.add('device_name')
     if args.gsi is not None:
         p.gsi = builds.PROVEN if args.gsi == 'proven' else builds.custom(args.gsi, args.gsi_checksum)
         given.add('gsi')
@@ -69,6 +72,11 @@ def ask(p: Plan, given: set, will_flash: bool, remembered: dict) -> Plan:
             except ui.Abort as e:
                 return str(e)
         p.name = ui.text('The name on its boot screens:', default, valid)
+
+    if 'device_name' not in given:
+        p.device_name = ui.text('This device\'s own name, in Settings and on the tailnet:',
+                                remembered.get('device_name', devicename.DEFAULT),
+                                lambda s: devicename.problem(s) or True)
 
     if will_flash and 'gsi' not in given:
         with ui.spinner('asking SourceForge for the current LineageOS builds'):
@@ -158,11 +166,13 @@ def unasked(p: Plan, given: set, remembered: dict) -> Plan:
     updates.look(p.update_repo)
     if 'sounds' not in given:
         p.sounds = remembered.get('sounds', sounds.DEFAULT)
+    if 'device_name' not in given:
+        p.device_name = devicename.check(remembered.get('device_name', devicename.DEFAULT))
     return p
 
 
 def show(p: Plan, will_flash: bool, where: str):
-    rows = [('R1', where), ('Name', p.name)]
+    rows = [('R1', where), ('Boot name', p.name), ('Device name', p.device_name)]
     if will_flash:
         rows.append(('LineageOS', p.gsi.label + ('' if p.gsi.proven else '  (untried)')))
     app = f'the latest release of {p.update_repo}' if p.apk == apk.LATEST else p.apk

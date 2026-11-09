@@ -122,6 +122,7 @@ Every question has a flag, and `--no-input` (or no terminal) asks nothing:
 | Flag | Default | |
 |---|---|---|
 | `--name NAME` | `croissant` | the boot logo and animation (the default is the committed pair) |
+| `--device-name NAME` | the R1's current one, else `Croissant C1` | its own name, shown in Settings > Device and made its Tailscale hostname (`croissant-c1`). Renamed later in Settings |
 | `--gsi proven\|URL\|FILE` | proven | LineageOS 20, 2025-10-21. Anything else is untried on an R1 |
 | `--gsi-checksum HEX` | | sha256 or md5 for a `--gsi` URL |
 | `--apk FILE\|DIR\|latest` | asked, else built here (installed: `latest`) | an APK of the app, a checkout of the source to build, or `latest`: the update repository's latest release |

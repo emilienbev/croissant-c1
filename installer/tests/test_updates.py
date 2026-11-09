@@ -26,7 +26,7 @@ UPDATER = paths.REPO / 'android/app/src/main/java/com/bleural/croissant/update/U
 
 def flags(**kw):
     """The install flags as argparse leaves them when none is given, with [kw] on top."""
-    return types.SimpleNamespace(**{'name': None, 'gsi': None, 'gsi_checksum': None, 'apk': None,
+    return types.SimpleNamespace(**{'name': None, 'device_name': None, 'gsi': None, 'gsi_checksum': None, 'apk': None,
                                     'offline_models': False, 'magisk': None, 'tailscale': None,
                                     'reflash': False, 'yes': False, 'update_repo': None, 'sounds': None} | kw)
 
@@ -88,7 +88,7 @@ class GradleDefault(unittest.TestCase):
 
 class Question(unittest.TestCase):
     """ask() with only this question left open, and unasked() for --no-input."""
-    others = {'name', 'apk', 'offline_models', 'sounds'}
+    others = {'name', 'device_name', 'apk', 'offline_models', 'sounds'}
 
     def setUp(self):
         self.looked = []

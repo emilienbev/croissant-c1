@@ -18,7 +18,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import __version__, apk, artifacts, atelier, backup, brand, device, font, gsi, magisk, paths, plan, preloader, prereqs, restore, sounds, stages, ui, upgrade
+from . import __version__, apk, artifacts, atelier, backup, brand, device, devicename, font, gsi, magisk, paths, plan, preloader, prereqs, restore, sounds, stages, ui, upgrade
 from .tools import Adb, Fastboot, binaries
 
 FONT_HELP = 'the Power Grotesk zip from BeFonts, or a folder holding its TTFs'
@@ -76,6 +76,8 @@ def cmd_install(args):
     font.ensure(args.font)                # before anything renders with it
     ui.step('The plan')
     remembered = ctx.state() if where.serial else {}
+    if on and (named := adb.sh('settings get global device_name', check=False)) not in ('', 'null'):
+        remembered['device_name'] = named     # renamed in Settings since: the R1's own name wins
     if ui.INTERACTIVE:
         p = ctx.plan = plan.ask(p, given, will_flash, remembered)
         ui.console.print()
@@ -93,7 +95,7 @@ def cmd_install(args):
             backup.before_erase(adb)
         stages.flash(ctx, where)
         stages.first_boot(ctx)
-    ctx.remember(name=p.name, offline_models=p.offline_models, update_repo=p.update_repo, sounds=p.sounds)
+    ctx.remember(name=p.name, device_name=p.device_name, offline_models=p.offline_models, update_repo=p.update_repo, sounds=p.sounds)
     stages.root(ctx)
     stages.device_files(ctx)
     stages.offmode(ctx)
@@ -291,6 +293,7 @@ def main():
     i = sub.add_parser('install', help='from rabbitOS (or wherever it got to) to Croissant',
                        description='Asks for anything the flags leave open, unless --no-input.')
     i.add_argument('--name', help='the name on the boot screens (default croissant)')
+    i.add_argument('--device-name', help=f'the device\'s own name, in Settings and on the tailnet (default {devicename.DEFAULT})')
     i.add_argument('--gsi', metavar='proven|URL|FILE',
                    help='the LineageOS GSI: the proven build (default), a URL, or a local '
                         '.img/.img.gz/.img.xz')

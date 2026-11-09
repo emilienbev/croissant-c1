@@ -6,6 +6,7 @@ already on the GSI, and only after `erase` is typed.
 """
 import json
 import re
+import shlex
 import tempfile
 import time
 from dataclasses import dataclass, field
@@ -491,8 +492,8 @@ def device_files(ctx: Ctx):
 
     with ui.spinner('turning the privacy indicators off, naming the device'):
         privacy_indicators(adb)
-        adb.script(f"settings put global device_name '{ctx.name}'", 'name')
-    ui.ok('privacy indicators off, device name set')
+        adb.script(f'settings put global device_name {shlex.quote(ctx.plan.device_name)}', 'name')
+    ui.ok(f'privacy indicators off, device name "{ctx.plan.device_name}"')
     with ui.spinner('setting the density, the clock and window transitions'):
         display(adb)
     ui.ok(f'density {DENSITY}, 24-hour clock, no window transitions')

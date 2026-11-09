@@ -62,7 +62,7 @@ class SoundsTest(unittest.TestCase):
 
 class Question(unittest.TestCase):
     """ask() with only the sounds left open, and unasked() for --no-input."""
-    others = {'name', 'apk', 'offline_models', 'update_repo'}
+    others = {'name', 'device_name', 'apk', 'offline_models', 'update_repo'}
 
     def setUp(self):
         for p in (mock.patch('croissant.updates.look'), mock.patch.object(ui, 'info')):
