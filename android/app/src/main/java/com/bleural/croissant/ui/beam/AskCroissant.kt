@@ -14,11 +14,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.util.lerp
 
 /*
- * The croissant on Ask (2026-10-28). It shows when you first hold in a new conversation, big in the
- * middle in place of the mic's level bars, listening; thinks there in place of the dots when you
- * let go; moves small into the top right corner, where Home's opened day puts it, when the answer
- * starts, and stays there for the rest of the conversation, listening, thinking and answering
- * there. A new conversation has none until you hold.
+ * The croissant on Ask (2026-10-28). It rests big in the middle of a new conversation (2026-11-23,
+ * before then it came up only with the first hold), listens there when you hold, in place of the
+ * mic's level bars, and thinks there in place of the dots when you let go; it moves small into the
+ * top right corner, where Home's opened day puts it, when the answer starts, and stays there for
+ * the rest of the conversation, listening, thinking and answering there. A new conversation sends
+ * it back to the middle.
  */
 
 /** Where the croissant is on Ask: not there, big in the middle, or small in the corner. */

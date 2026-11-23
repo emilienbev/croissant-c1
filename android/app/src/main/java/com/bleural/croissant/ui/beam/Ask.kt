@@ -56,19 +56,18 @@ import com.bleural.croissant.setup.Step
 
 /**
  * Ask in Beam (picked 2026-10-06; with the croissant and as a chat, 2026-10-28): the page is the
- * conversation and nothing else, no bar, no labels, the header the word alone. The croissant
- * (AskCroissant.kt) shows when you first hold in a new conversation, big in the middle, your words
- * arriving under it in white from the left with a hue caret after them (Body 32, x 24, first
- * baseline 392). From the let go on it is a chat: each question you asked ranged right in the hue,
+ * conversation and nothing else, no bar, no labels, the header the word alone. A new conversation
+ * has the croissant (AskCroissant.kt) resting big in the middle, "hold to talk" in sub under it
+ * (2026-11-23). A hold puts its ears up there, your words arriving under it in white from the left
+ * with a hue caret after them (Body 32, x 24, first baseline 392). From the let go on it is a chat: each question you asked ranged right in the hue,
  * its lines ending on the gutter (x 456, 400 wide at most), the answer from the left in white 74
  * under it, the tool lines where they happened, each with its feature's glyph, and the next
  * question 86 under the last line. The croissant thinks in place of dots until the answer starts,
  * then moves small into the top right corner and stays there for the conversation, the words rising
  * to a first baseline of 176 under it; a follow-up you are saying comes on the right, in white with
  * the caret on the gutter. A turn whose answer is still coming behind a newer hold has three dots
- * in the hue; an error is in danger with "hold to ask again" in sub under it. Empty, it says "hold
- * to talk" in sub where your words will be, and there is no croissant. A hold stopped at its press
- * says why with what to set under it: no server (the setup), no key for the model's provider
+ * in the hue; an error is in danger with "hold to ask again" in sub under it. A hold stopped at its
+ * press has no croissant and says why with what to set under it: no server (the setup), no key for the model's provider
  * ([onKey] its key's page), no model ([onModel], the model page).
  *
  * [turns] are the open conversation's kept turns; [live] is the exchange in flight or just
@@ -90,8 +89,8 @@ internal fun AskPage(
     val listening = live.phase == Phase.Listening
     val started = live.parts.isNotEmpty() || live.error != null
     val spot = when {
-        empty || live.refused -> AskSpot.None
-        kept.isEmpty() && showsLive && !started -> AskSpot.Middle
+        live.refused -> AskSpot.None
+        kept.isEmpty() && !started -> AskSpot.Middle
         else -> AskSpot.Corner
     }
     val mood = when {
@@ -117,7 +116,7 @@ internal fun AskPage(
         PageTop("ask", r) {
             // Always a scroll, empty too, so a finger has something to pull.
             Column(Modifier.fillMaxSize().elasticPull(pull, r.ink, r.ground).verticalScroll(scroll)) {
-                if (empty) Words { Text("hold to talk", style = WORDS, color = r.sub, modifier = Modifier.wordsAt(FIRST)) }
+                if (empty) Words { Text("hold to talk", style = WORDS, color = r.sub, modifier = Modifier.wordsAt(first)) }
                 else if (live.refused) Words {
                     Text(if (live.noServer) "no server yet" else live.error.orEmpty(), style = WORDS, color = r.danger, modifier = Modifier.wordsAt(FIRST))
                 }
