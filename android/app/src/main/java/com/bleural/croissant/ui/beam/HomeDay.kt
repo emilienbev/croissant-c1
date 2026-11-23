@@ -32,8 +32,9 @@ import java.time.OffsetDateTime
  * croissant shrinks into the top right corner and looks down at it, the date and the clock go to
  * the top left, and the rest of the day comes up in the features' hues: the timers as rings,
  * today's events still ahead, the to-dos, each group headed by its feature's dot, which rises out
- * of the row at the foot. A tap on the croissant, the elastic pull (a finger down or the wheel up)
- * or the left edge puts it away. Every number is a page pixel.
+ * of the row at the foot. A quiet settings key in white bottom right opens Settings > ask
+ * (2026-11-23). A tap on the croissant, the elastic pull (a finger down or the wheel up) or the
+ * left edge puts it away. Every number is a page pixel.
  */
 
 /**
@@ -145,6 +146,15 @@ private const val EVENT_TITLE_X = 104f
 private const val TODO_RING_X = 35f
 private const val TODO_RING_R = 11f
 private const val TODO_TITLE_X = 60f
+/** The settings key's centre, where Ask has its "+": 84 round, so it spans x 372 to 456 and y 532 to 616. */
+internal const val DAY_KEY_X = 414f
+internal const val DAY_KEY_Y = 574f
+/** A row whose baseline is under this would run into the key, so its words end at [KEY_CLEAR_END], 24 short of the ring. */
+private const val KEY_CLEAR_BASE = 520f
+private const val KEY_CLEAR_END = 348f
+
+/** Where a row's words end: the gutter, or short of the settings key for the rows beside it. */
+private fun rowEnd(base: Float): Float = if (base > KEY_CLEAR_BASE) KEY_CLEAR_END else 456f
 
 /** The word a group's head says. */
 internal fun headWord(f: Feature): String = when (f) {
@@ -181,12 +191,12 @@ internal fun DrawScope.drawDay(m: TextMeasurer, day: Day, groups: List<DayGroup>
                 val base = grp.head + EVENT_DROP + i * ROW_STEP
                 val tw = text(m, 24f, base, e.time, BeamType.Value, hue.a(a))
                 val x = maxOf(EVENT_TITLE_X, 24f + tw + 20f)
-                text(m, x, base, fit(m, e.title.lowercase(), BeamType.Select, 456f - x), BeamType.Select, r.ink.a(a))
+                text(m, x, base, fit(m, e.title.lowercase(), BeamType.Select, rowEnd(base) - x), BeamType.Select, r.ink.a(a))
             }
             else -> day.todo.forEachIndexed { i, title ->
                 val base = grp.head + TODO_DROP + i * ROW_STEP
                 drawCircle(hue.a(a), TODO_RING_R, Offset(TODO_RING_X, base - TODO_RING_R), style = Stroke(3f))
-                text(m, TODO_TITLE_X, base, fit(m, title.lowercase(), BeamType.Select, 456f - TODO_TITLE_X), BeamType.Select, r.ink.a(a))
+                text(m, TODO_TITLE_X, base, fit(m, title.lowercase(), BeamType.Select, rowEnd(base) - TODO_TITLE_X), BeamType.Select, r.ink.a(a))
             }
         }
     }

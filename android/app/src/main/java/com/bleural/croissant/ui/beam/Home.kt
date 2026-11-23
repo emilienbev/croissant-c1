@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
@@ -36,6 +37,8 @@ import com.bleural.croissant.atelier.InstalledApp
 import com.bleural.croissant.audio.Cues
 import com.bleural.croissant.audio.Sound
 import com.bleural.croissant.ui.Feature
+import com.bleural.croissant.ui.Glyphs
+import com.bleural.croissant.ui.Screen
 import com.bleural.croissant.ui.PanelDeps
 import com.bleural.croissant.ui.Place
 import com.bleural.croissant.ui.RoomState
@@ -135,8 +138,8 @@ private const val DOT_REACH = 44f
  *
  * A dot goes to its panel through the room's own tap ([tileAt], read by the shell's
  * `roomGestures`), so leaving Home sounds once. A tap on the rest opens the day; on the day, a
- * tap on a group opens its feature and a tap on the croissant puts the day away, as the
- * elastic pull and the left edge do.
+ * tap on a group opens its feature, the settings key bottom right opens Settings > ask, and a
+ * tap on the croissant puts the day away, as the elastic pull and the left edge do.
  */
 @Composable
 internal fun Home(room: RoomState, d: PanelDeps, apps: List<InstalledApp>, home: HomeState) {
@@ -159,6 +162,8 @@ internal fun Home(room: RoomState, d: PanelDeps, apps: List<InstalledApp>, home:
     // Home left puts the day away, so Home comes back as Home.
     LaunchedEffect(room, home) { snapshotFlow { room.homeTarget > 0.5f }.collect { if (!it) home.snapShut() } }
     val pull = rememberPull { home.shutDay(Sound.ScreenOut) }
+    // The key stays until the groups have faded on the way out, so it goes with them.
+    val keyed by remember(home) { derivedStateOf { home.open || home.progress > GROUP_FROM } }
     // While the day is open the wheel is its own: up is the pull, down has nothing to scroll.
     if (home.open) WheelTarget { delta -> if (delta < 0) pull.stepBack(); false }
     Box(Modifier.fillMaxSize().edgeShutsDay(home)) {
@@ -201,6 +206,10 @@ internal fun Home(room: RoomState, d: PanelDeps, apps: List<InstalledApp>, home:
                     groups.forEach { g ->
                         Box(Modifier.offset(0.px, g.top.px).size(480.px, (g.bottom - g.top).px).tappable { openFeature(room, g.feature) })
                     }
+                }
+                // After the groups, so a tap on it is the key's and not the to-dos'.
+                if (keyed) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ((home.progress - GROUP_FROM) / GROUP_OVER).coerceIn(0f, 1f) }) {
+                    QuietKeyAt(Glyphs.Settings, r, cx = DAY_KEY_X, cy = DAY_KEY_Y, onClick = { if (home.open) d.nav.push(Screen.AskSettings) })
                 }
             }
         }
