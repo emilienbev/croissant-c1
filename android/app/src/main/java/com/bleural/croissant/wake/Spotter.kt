@@ -2,7 +2,6 @@ package com.bleural.croissant.wake
 
 import com.bleural.croissant.microfrontend.MicroFrontend
 import org.tensorflow.lite.Interpreter
-import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -11,9 +10,9 @@ import java.nio.ByteOrder
  * was just said out, every [FRAMES_PER_STEP] feature frames (30 ms). The model keeps its own
  * state between calls, so one Spotter follows one stream. Quantizes and dequantizes as
  * microWakeWord's Python `inference.Model` does, so its numbers match the Mac's scoring.
- * Not thread-safe.
+ * [model] is the .tflite's bytes in a direct buffer. Not thread-safe.
  */
-class Spotter(model: File) : AutoCloseable {
+class Spotter(model: ByteBuffer) : AutoCloseable {
     private val frontend = MicroFrontend()
     private val interpreter = Interpreter(model, Interpreter.Options().setNumThreads(1))
     private val input = ByteBuffer.allocateDirect(FRAMES_PER_STEP * MicroFrontend.CHANNELS).order(ByteOrder.nativeOrder())
@@ -61,5 +60,9 @@ class Spotter(model: File) : AutoCloseable {
         /** Feature frames per model step: the stride it was trained with (30 ms). */
         const val FRAMES_PER_STEP = 3
         const val STEP_MS = FRAMES_PER_STEP * MicroFrontend.STEP_MS
+
+        /** A model file's bytes as the direct buffer LiteRT wants. */
+        fun load(bytes: ByteArray): ByteBuffer =
+            ByteBuffer.allocateDirect(bytes.size).order(ByteOrder.nativeOrder()).put(bytes).also { it.rewind() }
     }
 }

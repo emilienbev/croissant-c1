@@ -112,6 +112,9 @@ import com.bleural.croissant.tailscale.TailscaleRepo
 import com.bleural.croissant.weather.WeatherSource
 import com.bleural.croissant.wifi.WifiQr
 import com.bleural.croissant.wifi.WifiRepo
+import com.bleural.croissant.wake.WakeConfig
+import com.bleural.croissant.wake.WakePower
+import com.bleural.croissant.wake.WakeStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -179,6 +182,7 @@ class Core(
     private val idleRecorder = MutableStateFlow(RecorderState())
     private val idleTranscribe = MutableStateFlow<TranscribeState?>(null)
     private val idleLocal = MutableStateFlow<LocalState>(LocalState.Off)
+    private val idleWake = MutableStateFlow(WakeStatus())
     private val idleAskConv = MutableStateFlow<String?>(null)
 
     /**
@@ -192,6 +196,8 @@ class Core(
     val transcribing: StateFlow<TranscribeState?> get() = service?.transcriber?.state ?: idleTranscribe
     /** The Translator's local mode: off, loading, ready, or failed with why. */
     val local: StateFlow<LocalState> get() = service?.local?.state ?: idleLocal
+    /** The wake word: off, listening, or paused by the battery rule. */
+    val wake: StateFlow<WakeStatus> get() = service?.wake ?: idleWake
     /**
      * The conversation Ask shows and a hold there continues, from [conversations]; null
      * for a blank page, where the next hold starts one. The turn in flight is [voice]
@@ -222,6 +228,7 @@ class Core(
             if (translatorOpen) s.setTranslate(translatorPair)
             if (atelierWords || agentWords) s.setDictate(true)
             s.holdAwake(updating)
+            s.setWakeWord(wakeWord)
             service = s
             watchPhase(s)
         }
@@ -275,6 +282,9 @@ class Core(
     var sleep by mutableIntStateOf(Idle.SLEEP_DEFAULT)
         private set
     var batteryTrack by mutableStateOf(true)
+        private set
+    /** Settings > Ask > hey muffin: the always-on wake word switched on. Whether it listens now is [wake]. */
+    var wakeWord by mutableStateOf(false)
         private set
     var batteryEvery by mutableIntStateOf(BatteryTracker.DEFAULT_EVERY_MS)
         private set
@@ -399,6 +409,19 @@ class Core(
         service?.setSleep(ms)
     }
 
+    /**
+     * Switches the wake word on or off. Switching it on under [WakeConfig.BATTERY_MIN] percent
+     * unplugged is refused (false), and the page says why; once on, the battery rule only pauses it.
+     */
+    fun saveWakeWord(on: Boolean): Boolean {
+        val d = device.value
+        if (on && d.batteryPct >= 0 && !WakePower.allowed(d.batteryPct, d.charging)) return false
+        wakeWord = on
+        Prefs.setWakeWord(activity, on)
+        service?.setWakeWord(on)
+        return true
+    }
+
     fun saveBatteryTrack(on: Boolean) {
         batteryTrack = on
         Prefs.setBatteryTrack(activity, on)
@@ -465,6 +488,7 @@ class Core(
         rest = Prefs.rest(activity); DeviceLevels.applyRest(activity, rest)
         sleep = Prefs.sleep(activity)
         batteryTrack = Prefs.batteryTrack(activity); batteryEvery = Prefs.batteryEvery(activity)
+        wakeWord = Prefs.wakeWord(activity)
         translatorPair = Prefs.translatorPair(activity)
         _recents.value = Prefs.wheelRecents(activity)
         _pins.value = Prefs.wheelPins(activity)

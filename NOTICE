@@ -17,6 +17,13 @@ android/lpac-jni/
   - cJSON (src/main/jni/cjson/cjson) by Dave Gamble and cJSON contributors, MIT.
     Licence: src/main/jni/cjson/cjson/LICENSE.
 
+android/app/src/main/assets/wake/hey-muffin.tflite
+  The "hey muffin" wake word model, trained with microWakeWord
+  (https://github.com/kahrendt/microWakeWord, Apache-2.0) on speech made with Piper's
+  en_US-libritts_r-medium voices and on noise and speech sets that include ones licensed
+  for non-commercial use only. So the model itself is for non-commercial use: a fork that
+  sells devices should train its own.
+
 android/micro-frontend/
   The TFLite Micro audio frontend, the feature maker the wake word's models are trained on,
   vendored from pymicro-features 2.0.2 (https://github.com/rhasspy/pymicro-features).

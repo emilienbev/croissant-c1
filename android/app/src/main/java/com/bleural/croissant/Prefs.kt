@@ -21,6 +21,7 @@ object Prefs {
     private const val KEY_MUTED = "muted"
     private const val KEY_BRIGHTNESS = "brightness"
     private const val KEY_BATTERY_TRACK = "battery_track"
+    private const val KEY_WAKE_WORD = "wake_word"
     private const val KEY_BATTERY_EVERY = "battery_every_ms"
     private const val KEY_REST = "rest_ms"
     private const val KEY_SLEEP = "sleep_ms"
@@ -146,6 +147,10 @@ object Prefs {
     /** Settings > Device > Battery: whether the log runs (on by default) and how often a sample is taken. */
     fun batteryTrack(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_BATTERY_TRACK, true)
     fun setBatteryTrack(ctx: Context, on: Boolean) { sp(ctx).edit().putBoolean(KEY_BATTERY_TRACK, on).apply() }
+
+    /** Settings > Ask > hey muffin: the always-on wake word. Off until switched on. */
+    fun wakeWord(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_WAKE_WORD, false)
+    fun setWakeWord(ctx: Context, on: Boolean) { sp(ctx).edit().putBoolean(KEY_WAKE_WORD, on).apply() }
     fun look(ctx: Context): Look {
         val p = sp(ctx)
         return Look(p.getString(KEY_DESIGN, "") ?: "", p.getString(KEY_VARIANT, "") ?: "")

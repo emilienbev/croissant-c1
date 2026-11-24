@@ -13,6 +13,7 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.BatteryManager
 import android.os.Binder
 import android.os.IBinder
 import android.os.PowerManager
@@ -46,6 +47,13 @@ import com.bleural.croissant.data.Timer
 import com.bleural.croissant.data.TimerPlan
 import com.bleural.croissant.data.ToolExecutor
 import com.bleural.croissant.data.Turn
+import com.bleural.croissant.wake.Endpoint
+import com.bleural.croissant.wake.Spotter
+import com.bleural.croissant.wake.WakeConfig
+import com.bleural.croissant.wake.WakeListener
+import com.bleural.croissant.wake.WakePhrase
+import com.bleural.croissant.wake.WakePower
+import com.bleural.croissant.wake.WakeStatus
 import com.bleural.croissant.data.TurnState
 import com.bleural.croissant.net.GenerationFetcher
 import com.bleural.croissant.net.ModelSlot
@@ -104,6 +112,9 @@ class VoiceService : Service() {
          * com.bleural.croissant.LOCAL --ez on true com.bleural.croissant/.VoiceService`.
          */
         const val ACTION_LOCAL = "com.bleural.croissant.LOCAL"
+
+        /** How long a wake holds the screen on; the usual timeout takes over after. */
+        private const val WAKE_SCREEN_MS = 10_000L
 
         /** A hold with no words in it, as the server says it. */
         private const val NO_SPEECH = "No speech detected"
@@ -299,6 +310,20 @@ class VoiceService : Service() {
 
     /** Anything else listening to the microphone: the tuner, while its page is up. Called on the capture thread. */
     @Volatile var tap: ((ByteArray, Int) -> Unit)? = null
+
+    /**
+     * The always-on wake word (Settings > Ask), while it is switched on: it keeps the mic and the
+     * CPU, so the screen going off leaves it listening. [wakePower] is the battery rule's say.
+     */
+    @Volatile private var wakeWord: WakeListener? = null
+    @Volatile private var wakePower = true
+    @Volatile private var wakePercent = -1
+    /** The room's loudness and the end of a wake's ask, on the capture thread only. */
+    private val endpoint = Endpoint()
+    /** Whether the wake word was listening at the last chunk: a pause starts it afresh. */
+    private var wakeWasArmed = false
+    private val _wake = MutableStateFlow(WakeStatus())
+    val wake: StateFlow<WakeStatus> = _wake
     private var session: SessionClient? = null
     private var holdJob: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -334,6 +359,7 @@ class VoiceService : Service() {
             }
             recorder.feed(buf, n)
             tap?.invoke(buf, n)
+            hearForWake(buf, n, live)
             meter(buf, n, live)
         }.also { it.start() }
 
@@ -351,7 +377,9 @@ class VoiceService : Service() {
         registerReceiver(screenReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_POWER_CONNECTED); addAction(Intent.ACTION_POWER_DISCONNECTED)
+            addAction(Intent.ACTION_BATTERY_CHANGED)
         })
+        setWakeWord(Prefs.wakeWord(this))
         BatteryTracker.sample(this, "start")
         BatteryTracker.sync(this)
 
@@ -385,6 +413,7 @@ class VoiceService : Service() {
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
             when (i.action) {
+                Intent.ACTION_BATTERY_CHANGED -> { batteryChanged(i); return }
                 Intent.ACTION_POWER_CONNECTED -> { BatteryTracker.sample(c, "plug"); return }
                 Intent.ACTION_POWER_DISCONNECTED -> { BatteryTracker.sample(c, "unplug"); return }
             }
@@ -394,6 +423,108 @@ class VoiceService : Service() {
             // Every sleep and wake, whatever caused it: the button, Power, the timeout.
             Cues.play(if (on) Sound.ScreenWake else Sound.ScreenSleep)
         }
+    }
+
+    // ---- the wake word ------------------------------------------------------
+
+    /** Settings > Ask > hey muffin: the listener up or down. A model that will not load is logged and the switch shows off. */
+    fun setWakeWord(on: Boolean) {
+        if (on == (wakeWord != null)) return
+        if (!on) {
+            wakeWord?.let { wakeWord = null; it.stop() }
+            publishWake()
+            return
+        }
+        idle?.used()
+        wakeWord = runCatching {
+            WakeListener(Spotter.load(assets.open(WakeConfig.MODEL_ASSET).use { it.readBytes() })) {
+                scope.launch { wakeHeard() }
+            }
+        }.onFailure { Log.e(TAG, "the wake word failed to start from ${WakeConfig.MODEL_ASSET}", it) }.getOrNull()
+        publishWake()
+    }
+
+    private fun batteryChanged(i: Intent) {
+        val level = i.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = i.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
+        val charging = i.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+        wakePercent = if (level < 0) -1 else level * 100 / scale
+        val allowed = WakePower.allowed(wakePercent, charging)
+        if (allowed == wakePower) { publishWake(); return }
+        wakePower = allowed
+        Log.i(TAG, "wake word ${if (allowed) "back" else "paused"} at $wakePercent%${if (charging) ", charging" else ""}")
+        // Back by a plug-in: the mic may have rested meanwhile.
+        if (allowed && wakeWord != null) idle?.used()
+        publishWake()
+    }
+
+    private fun publishWake() {
+        val state = when {
+            wakeWord == null -> WakeStatus.State.Off
+            !wakePower -> WakeStatus.State.Paused
+            else -> WakeStatus.State.Listening
+        }
+        _wake.value = WakeStatus(state, wakePercent)
+    }
+
+    /** Whether a wake now would be taken: on, allowed, and nothing else using the mic or the page. */
+    private fun wakeArmed(): Boolean {
+        if (wakeWord == null || !wakePower) return false
+        val p = _state.value.phase
+        return (p == Phase.Idle || p == Phase.Error) && !streaming && answering.get() == 0 &&
+            recorder.state.value.phase == RecPhase.Idle && tap == null && _ringing.value.isEmpty() && !updating &&
+            translatePair == null && !dictateMode
+    }
+
+    /** Every capture chunk: the room's loudness, the listener while it may wake, the end of a wake's ask. */
+    private fun hearForWake(buf: ByteArray, n: Int, live: Boolean) {
+        val listener = wakeWord ?: return
+        val db = Endpoint.dbfs(buf, n)
+        val h = hold
+        if (live && h != null && h.wake) {
+            when (endpoint.offer(db, n / AudioCapture.BYTES_PER_MS)) {
+                Endpoint.Verdict.Going -> Unit
+                Endpoint.Verdict.Over -> { h.wake = false; scope.launch { if (hold === h && streaming) endUtterance() } }
+                Endpoint.Verdict.Nothing -> { h.wake = false; scope.launch { if (hold === h) wakeWithdrawn(h) } }
+            }
+            return
+        }
+        endpoint.track(db)
+        val armed = wakeArmed()
+        if (armed && !wakeWasArmed) listener.restart()
+        wakeWasArmed = armed
+        if (armed) listener.feed(buf, n)
+    }
+
+    /** The phrase was heard: the screen comes on and it goes on as a hold that started at the phrase. */
+    private fun wakeHeard() {
+        if (!wakeArmed()) return
+        Log.i(TAG, "wake word: asking")
+        @Suppress("DEPRECATION")
+        (getSystemService(POWER_SERVICE) as PowerManager)
+            .newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "croissant:wake")
+            .acquire(WAKE_SCREEN_MS)
+        idle?.used()
+        beginUtterance()
+        val h = hold ?: return
+        if (_state.value.phase != Phase.Listening) return
+        endpoint.start()
+        h.byWake = true
+        h.wake = true
+    }
+
+    /** A wake with no ask after it: the turn goes, the page goes back to how it was, and nothing says it failed. */
+    private fun wakeWithdrawn(h: Hold) {
+        Log.i(TAG, "wake word: nothing asked")
+        synchronized(sendLock) {
+            streaming = false
+            localPcm = null
+        }
+        session?.abort()
+        session = null
+        h.turn?.let { conversations.drop(it) }
+        hold = null
+        _state.value = VoiceState()
     }
 
     /** Settings > Device > Battery > Sleep, in ms or [Idle.NEVER]. */
@@ -406,7 +537,7 @@ class VoiceService : Service() {
     private fun busy(): Boolean {
         val p = _state.value.phase
         return (p != Phase.Idle && p != Phase.Error) || streaming || answering.get() > 0 || working() ||
-            recorder.state.value.phase != RecPhase.Idle || tap != null || _ringing.value.isNotEmpty() || updating
+            recorder.state.value.phase != RecPhase.Idle || tap != null || (wakeWord != null && wakePower) || _ringing.value.isNotEmpty() || updating
     }
 
     /** An update installing (Core): nothing rests or sleeps until it is done. */
@@ -439,6 +570,7 @@ class VoiceService : Service() {
     override fun onDestroy() {
         runCatching { unregisterReceiver(screenReceiver) }
         idle?.close()
+        wakeWord?.stop()
         holdJob?.cancel()
         session?.abort()
         local.off()
@@ -566,6 +698,10 @@ class VoiceService : Service() {
     ) {
         @Volatile var releasedAt = 0L
         @Volatile var finalAt = 0L
+        /** Started by the wake word: it ends by itself when the speaker stops, and its words lose the phrase. */
+        @Volatile var wake = false
+        /** It was started by the wake word, kept once [wake] is cleared at its end. */
+        @Volatile var byWake = false
         @Volatile var firstTextAt = 0L
         @Volatile var answering = false
         /** Its tool calls so far, for each line's id. */
@@ -719,7 +855,7 @@ class VoiceService : Service() {
                 if (!mine) return
                 when (msg) {
                     is Protocol.Incoming.Partial ->
-                        h.update { it.copy(transcript = msg.text) }
+                        h.update { it.copy(transcript = if (h.byWake) WakePhrase.strip(msg.text) else msg.text) }
                     is Protocol.Incoming.Final -> heard(h, msg.text)
                     // Only dictation waits for it: any other hold let the socket go at `final`.
                     Protocol.Incoming.AnswerDone -> dictated(h)
@@ -780,7 +916,9 @@ class VoiceService : Service() {
      * every other hold is the C1's from here: the socket goes, and its answer runs in the
      * service's scope, to its end whatever the page does.
      */
-    private fun heard(h: Hold, text: String) {
+    private fun heard(h: Hold, said: String) {
+        val text = if (h.byWake) WakePhrase.strip(said) else said
+        if (h.byWake && text.isEmpty()) { wakeWithdrawn(h); return }
         if (h.finalAt == 0L) h.finalAt = SystemClock.elapsedRealtime()
         h.update { it.copy(transcript = text, phase = Phase.Answering) }
         h.turn?.let { t -> conversations.update(t) { it.copy(question = text) } }
