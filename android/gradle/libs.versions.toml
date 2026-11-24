@@ -13,6 +13,7 @@ camerax = "1.6.2"
 zxingcpp = "3.1.1"
 zxingcore = "3.5.3"
 quickjs = "1.0.15"
+litert = "1.4.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +35,7 @@ zxingcpp = { group = "io.github.zxing-cpp", name = "android", version.ref = "zxi
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingcore" }
 quickjs = { group = "io.github.dokar3", name = "quickjs-kt", version.ref = "quickjs" }
 quickjs-jvm = { group = "io.github.dokar3", name = "quickjs-kt-jvm", version.ref = "quickjs" }
+litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 

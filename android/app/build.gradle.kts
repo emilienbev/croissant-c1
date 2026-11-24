@@ -99,6 +99,9 @@ android {
 
 dependencies {
     implementation(project(":lpac-jni"))
+    // The wake word: the audio frontend its models are trained on, and LiteRT to run them.
+    implementation(project(":micro-frontend"))
+    implementation(libs.litert)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.lifecycle.runtime.compose)

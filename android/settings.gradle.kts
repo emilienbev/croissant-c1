@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 rootProject.name = "Croissant"
 include(":app")
 include(":lpac-jni")
+include(":micro-frontend")

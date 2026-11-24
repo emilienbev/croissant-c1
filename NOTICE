@@ -17,6 +17,14 @@ android/lpac-jni/
   - cJSON (src/main/jni/cjson/cjson) by Dave Gamble and cJSON contributors, MIT.
     Licence: src/main/jni/cjson/cjson/LICENSE.
 
+android/micro-frontend/
+  The TFLite Micro audio frontend, the feature maker the wake word's models are trained on,
+  vendored from pymicro-features 2.0.2 (https://github.com/rhasspy/pymicro-features).
+  See its README.md for what was copied.
+  - tensorflow/lite/experimental/microfrontend/lib by The TensorFlow Authors, Apache-2.0.
+    Licence: android/micro-frontend/LICENSE.
+  - kissfft (src/main/cpp/kissfft) by Mark Borgerding, BSD-3-Clause, its notice in each file.
+
 android/app/src/main/assets/sounds/, installer/croissant/sounds/, android/app/src/main/assets/metronome/
   The interface sound packs and their demos, and the metronome's Tine, Chime and Bamboo,
   rendered by sounds/earshot.py and sounds/metronome.py with

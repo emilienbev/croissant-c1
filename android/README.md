@@ -15,8 +15,10 @@ page is for doing it by hand and for changing the code.
 - The Android SDK: `platforms;android-37.0` and `build-tools;36.0.0`, and for the emulator
   the `google_apis / arm64-v8a` API 33 image. `./croissant install` offers to install the
   build's packages when they are missing (installer/README.md).
-- NDK 28.2.13676358, for `lpac-jni` (the eSIM library, `lpac-jni/README.md`):
+- NDK 28.2.13676358, for `lpac-jni` (the eSIM library, `lpac-jni/README.md`) and
+  `micro-frontend` (the wake word's audio frontend, `micro-frontend/README.md`):
   `sdkmanager --install "ndk;28.2.13676358"`.
+- CMake 3.31.6, for `micro-frontend`: `sdkmanager --install "cmake;3.31.6"`.
 - The offline Translator's two AARs (sherpa-onnx and Foxlet, not on Maven Central, not
   in git): run `libs/fetch.sh` once. It downloads both and checks their SHA-256.
 
