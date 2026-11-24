@@ -19,12 +19,12 @@ object WakeConfig {
     const val GRACE_MS = 300
     /** No speech this long after the wake: there was no ask, and it goes back quietly. */
     const val NO_SPEECH_MS = 3000
-    /** Quiet this long after speech: the ask is over. */
-    const val SILENCE_MS = 800
+    /** No speech this long after speech: the ask is over. */
+    const val SILENCE_MS = 1500
     /** The longest ask. */
     const val MAX_MS = 15_000
-    /** Speech is this far over the room's floor... */
-    const val SPEECH_OVER_FLOOR_DB = 10f
-    /** ...and at least this loud. */
-    const val SPEECH_MIN_DB = -55f
+    /** The speech detector's model (Silero VAD), in assets. */
+    const val VAD_ASSET = "wake/silero_vad.onnx"
+    /** Silero's speech probability from which a window counts as speech; 0.5 is its own default. */
+    const val VAD_THRESHOLD = 0.5f
 }

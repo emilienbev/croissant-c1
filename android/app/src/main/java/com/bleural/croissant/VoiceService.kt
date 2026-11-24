@@ -318,8 +318,6 @@ class VoiceService : Service() {
     @Volatile private var wakeWord: WakeListener? = null
     @Volatile private var wakePower = true
     @Volatile private var wakePercent = -1
-    /** The room's loudness and the end of a wake's ask, on the capture thread only. */
-    private val endpoint = Endpoint()
     /** Whether the wake word was listening at the last chunk: a pause starts it afresh. */
     private var wakeWasArmed = false
     private val _wake = MutableStateFlow(WakeStatus())
@@ -437,7 +435,7 @@ class VoiceService : Service() {
         }
         idle?.used()
         wakeWord = runCatching {
-            WakeListener(Spotter.load(assets.open(WakeConfig.MODEL_ASSET).use { it.readBytes() })) {
+            WakeListener(Spotter.load(assets.open(WakeConfig.MODEL_ASSET).use { it.readBytes() }), assets) {
                 scope.launch { wakeHeard() }
             }
         }.onFailure { Log.e(TAG, "the wake word failed to start from ${WakeConfig.MODEL_ASSET}", it) }.getOrNull()
@@ -476,20 +474,14 @@ class VoiceService : Service() {
             translatePair == null && !dictateMode
     }
 
-    /** Every capture chunk: the room's loudness, the listener while it may wake, the end of a wake's ask. */
+    /** Every capture chunk: the listener while it may wake, or while it follows a wake's ask. */
     private fun hearForWake(buf: ByteArray, n: Int, live: Boolean) {
         val listener = wakeWord ?: return
-        val db = Endpoint.dbfs(buf, n)
         val h = hold
         if (live && h != null && h.wake) {
-            when (endpoint.offer(db, n / AudioCapture.BYTES_PER_MS)) {
-                Endpoint.Verdict.Going -> Unit
-                Endpoint.Verdict.Over -> { h.wake = false; scope.launch { if (hold === h && streaming) endUtterance() } }
-                Endpoint.Verdict.Nothing -> { h.wake = false; scope.launch { if (hold === h) wakeWithdrawn(h) } }
-            }
+            listener.feed(buf, n)
             return
         }
-        endpoint.track(db)
         val armed = wakeArmed()
         if (armed && !wakeWasArmed) listener.restart()
         wakeWasArmed = armed
@@ -508,8 +500,16 @@ class VoiceService : Service() {
         beginUtterance()
         val h = hold ?: return
         if (_state.value.phase != Phase.Listening) return
-        endpoint.start()
+        val listener = wakeWord ?: return
         h.byWake = true
+        listener.follow { v ->
+            h.wake = false
+            when (v) {
+                Endpoint.Verdict.Over -> scope.launch { if (hold === h && streaming) endUtterance() }
+                Endpoint.Verdict.Nothing -> scope.launch { if (hold === h) wakeWithdrawn(h) }
+                Endpoint.Verdict.Going -> Unit
+            }
+        }
         h.wake = true
     }
 

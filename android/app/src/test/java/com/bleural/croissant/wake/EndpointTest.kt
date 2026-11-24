@@ -4,50 +4,54 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class EndpointTest {
-    private val quiet = -70f
-    private val voice = -30f
+    private val window = SpeechDetector.WINDOW_MS
 
-    /** The verdict after a run of 20 ms chunks at these levels, the room quiet before the wake. */
-    private fun run(vararg spans: Pair<Float, Int>): Pair<Endpoint.Verdict, Int> {
+    /** The verdict, and when, after runs of windows with or without speech. */
+    private fun run(vararg spans: Pair<Boolean, Int>): Pair<Endpoint.Verdict, Int> {
         val e = Endpoint()
-        repeat(100) { e.track(quiet) }
         e.start()
         var ms = 0
-        for ((db, len) in spans) repeat(len / 20) {
-            ms += 20
-            val v = e.offer(db, 20)
+        for ((speech, len) in spans) repeat(len / window) {
+            ms += window
+            val v = e.offer(speech, window)
             if (v != Endpoint.Verdict.Going) return v to ms
         }
         return Endpoint.Verdict.Going to ms
     }
 
+    /** The first whole window at or past [ms]. */
+    private fun at(ms: Int) = (ms + window - 1) / window * window
+
     @Test fun endsAfterTheQuietThatFollowsTheAsk() {
-        assertEquals(Endpoint.Verdict.Over to 2300, run(voice to 1500, quiet to 2000))
+        val talk = at(1500)
+        assertEquals(Endpoint.Verdict.Over to talk + at(WakeConfig.SILENCE_MS), run(true to talk, false to 2000))
     }
 
     @Test fun nothingSaidAfterThePhraseGoesBackQuietly() {
-        assertEquals(Endpoint.Verdict.Nothing to WakeConfig.NO_SPEECH_MS, run(quiet to 5000))
+        assertEquals(Endpoint.Verdict.Nothing to at(WakeConfig.NO_SPEECH_MS), run(false to 5000))
     }
 
     @Test fun thePhraseTailIsNotTheAsk() {
-        assertEquals(Endpoint.Verdict.Nothing to WakeConfig.NO_SPEECH_MS, run(voice to WakeConfig.GRACE_MS, quiet to 5000))
+        val tail = WakeConfig.GRACE_MS / window * window
+        assertEquals(Endpoint.Verdict.Nothing to at(WakeConfig.NO_SPEECH_MS), run(true to tail, false to 5000))
     }
 
     @Test fun aPauseBeforeTheAskIsFine() {
-        assertEquals(Endpoint.Verdict.Over to 3400, run(quiet to 1000, voice to 1600, quiet to 2000))
+        val pause = at(1000)
+        val talk = at(1600)
+        assertEquals(Endpoint.Verdict.Over to pause + talk + at(WakeConfig.SILENCE_MS), run(false to pause, true to talk, false to 2000))
+    }
+
+    @Test fun aShortPauseMidAskDoesNotEndIt() {
+        val talk = at(1000)
+        val gap = at(WakeConfig.SILENCE_MS / 2)
+        assertEquals(
+            Endpoint.Verdict.Over to talk + gap + talk + at(WakeConfig.SILENCE_MS),
+            run(true to talk, false to gap, true to talk, false to 2000),
+        )
     }
 
     @Test fun aLongAskIsCut() {
-        assertEquals(Endpoint.Verdict.Over to WakeConfig.MAX_MS, run(voice to 20_000))
-    }
-
-    @Test fun aSteadyLoudRoomIsTheFloorNotSpeech() {
-        val e = Endpoint()
-        repeat(4000) { e.track(-40f) }
-        e.start()
-        var v = Endpoint.Verdict.Going
-        var ms = 0
-        while (v == Endpoint.Verdict.Going) { v = e.offer(-40f, 20); ms += 20 }
-        assertEquals(Endpoint.Verdict.Nothing to WakeConfig.NO_SPEECH_MS, v to ms)
+        assertEquals(Endpoint.Verdict.Over to at(WakeConfig.MAX_MS), run(true to 20_000))
     }
 }

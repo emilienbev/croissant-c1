@@ -23,6 +23,10 @@ android/app/src/main/assets/wake/hey-muffin.tflite
   licensed for non-commercial use only. So the model itself is for non-commercial use:
   a fork that sells devices should train its own.
 
+android/app/src/main/assets/wake/silero_vad.onnx
+  Silero VAD (https://github.com/snakers4/silero-vad) by the Silero Team, MIT, as
+  sherpa-onnx publishes it. Licence: android/app/src/main/assets/wake/silero_vad.LICENSE.
+
 android/micro-frontend/
   The TFLite Micro audio frontend, the feature maker the wake word's models are trained on,
   vendored from pymicro-features 2.0.2 (https://github.com/rhasspy/pymicro-features).

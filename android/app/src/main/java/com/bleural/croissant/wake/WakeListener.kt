@@ -1,5 +1,6 @@
 package com.bleural.croissant.wake
 
+import android.content.res.AssetManager
 import android.os.Debug
 import android.os.SystemClock
 import android.util.Log
@@ -10,11 +11,17 @@ import kotlin.concurrent.thread
 
 /**
  * The wake word on the always-hot mic: [Spotter] and [WakeRule] on a thread of their own, fed
- * by the capture thread, which only queues, so a slow step never stalls the mic. [onWake] runs
- * on that thread; the caller moves it where it needs. A minute's cost is logged (grep `wake minute`).
+ * by the capture thread, which only queues, so a slow step never stalls the mic. After a wake
+ * the same thread follows the ask to its end ([follow]: [SpeechDetector] and [Endpoint]).
+ * [onWake] and the end run on that thread; the caller moves them where it needs. A minute's
+ * cost is logged (grep `wake minute`), and each ask's end (grep `ask end`).
  */
-class WakeListener(model: ByteBuffer, private val onWake: () -> Unit) {
+class WakeListener(model: ByteBuffer, assets: AssetManager, private val onWake: () -> Unit) {
     private val spotter = Spotter(model)
+    private val speech = SpeechDetector(assets)
+    private val endpoint = Endpoint()
+    /** The ask being followed to its end, or null while it listens for the wake. */
+    @Volatile private var ask: Ask? = null
     private val queue = ArrayBlockingQueue<ShortArray>(QUEUE_CHUNKS)
     @Volatile private var running = true
     @Volatile private var rule = WakeRule(WakeConfig.CUTOFF)
@@ -35,15 +42,29 @@ class WakeListener(model: ByteBuffer, private val onWake: () -> Unit) {
      * in the model's memory, cannot start another.
      */
     fun restart() {
+        ask = null
         queue.clear()
         deaf = WakeConfig.RESTART_DEAF_MS / Spotter.STEP_MS
         rule = WakeRule(WakeConfig.CUTOFF)
+    }
+
+    /** After a wake: the chunks fed from now on are the ask, and [onEnd] gets its end, once. */
+    fun follow(onEnd: (Endpoint.Verdict) -> Unit) {
+        queue.clear()
+        ask = Ask(onEnd)
     }
 
     fun stop() {
         running = false
         worker.join(1000)
         spotter.close()
+        speech.close()
+    }
+
+    private class Ask(val onEnd: (Endpoint.Verdict) -> Unit) {
+        var started = false
+        var ms = 0
+        var cpuAt = 0L
     }
 
     private fun listen() {
@@ -52,6 +73,11 @@ class WakeListener(model: ByteBuffer, private val onWake: () -> Unit) {
         var windowAt = SystemClock.elapsedRealtime()
         while (running) {
             val s = queue.poll(200, TimeUnit.MILLISECONDS) ?: continue
+            val a = ask
+            if (a != null) {
+                hearAsk(a, s)
+                continue
+            }
             val r = rule
             spotter.feed(s) { p ->
                 if (deaf > 0) deaf-- else if (r.offer(p)) { Log.i(TAG, "wake, p %.2f".format(p)); onWake() }
@@ -63,6 +89,24 @@ class WakeListener(model: ByteBuffer, private val onWake: () -> Unit) {
                 Log.i(TAG, "wake minute: heard $heardMs ms, cpu ${(cpu - cpuAt) / 1_000_000} ms, dropped $dropped")
                 heardMs = 0; dropped = 0; cpuAt = cpu; windowAt = now
             }
+        }
+    }
+
+    private fun hearAsk(a: Ask, s: ShortArray) {
+        if (!a.started) {
+            speech.reset()
+            endpoint.start()
+            a.started = true
+            a.cpuAt = Debug.threadCpuTimeNanos()
+        }
+        speech.feed(s) { isSpeech ->
+            if (ask !== a) return@feed
+            a.ms += SpeechDetector.WINDOW_MS
+            val v = endpoint.offer(isSpeech, SpeechDetector.WINDOW_MS)
+            if (v == Endpoint.Verdict.Going) return@feed
+            ask = null
+            Log.i(TAG, "ask end: $v after ${a.ms} ms, speech check cpu ${(Debug.threadCpuTimeNanos() - a.cpuAt) / 1_000_000} ms")
+            a.onEnd(v)
         }
     }
 
