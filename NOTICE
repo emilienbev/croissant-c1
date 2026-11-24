@@ -19,11 +19,9 @@ android/lpac-jni/
 
 android/app/src/main/assets/wake/hey-muffin.tflite
   The "hey muffin" wake word model, trained with microWakeWord
-  (https://github.com/kahrendt/microWakeWord, Apache-2.0) on speech made with Piper's
-  en_US-libritts_r-medium voices and Google's Gemini TTS voices, a few dozen of the
-  maintainer's own recordings, and noise and speech sets that include ones licensed
-  for non-commercial use only. So the model itself is for non-commercial use: a fork that
-  sells devices should train its own.
+  (https://github.com/kahrendt/microWakeWord, Apache-2.0) on data that includes sets
+  licensed for non-commercial use only. So the model itself is for non-commercial use:
+  a fork that sells devices should train its own.
 
 android/micro-frontend/
   The TFLite Micro audio frontend, the feature maker the wake word's models are trained on,
