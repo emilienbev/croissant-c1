@@ -278,6 +278,13 @@ object Glyphs {
             stroke("M10.8 18.5h2.4")
         }
     }
+    /** An ear: the always-on wake word (Beam Settings > Ask). Lucide's "ear", ISC. */
+    val Ear by lazy {
+        glyph("ear") {
+            stroke("M6 8.5a6.5 6.5 0 1 1 13 0c0 6-6 6-6 10a3.5 3.5 0 1 1-7 0")
+            stroke("M15 8.5a2.5 2.5 0 0 0-5 0v1a2 2 0 1 1 0 4")
+        }
+    }
     val Power by lazy { glyph("power") { stroke("M12 3v9M7 6.5a7 7 0 1 0 10 0") } }
     val Moon by lazy { glyph("moon") { fill("M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z") } }
     val Restart by lazy { glyph("restart") { stroke("M19 12a7 7 0 1 1-2.05-4.95M19 4v4.5h-4.5") } }

@@ -1,5 +1,6 @@
 package com.bleural.croissant.ui.beam
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +42,8 @@ import com.bleural.croissant.Core
 import com.bleural.croissant.ask.Calls
 import com.bleural.croissant.audio.Cues
 import com.bleural.croissant.audio.Sound
+import com.bleural.croissant.wake.WakeConfig
+import com.bleural.croissant.wake.WakeStatus
 import com.bleural.croissant.data.AskCatalog
 import com.bleural.croissant.data.BenchScore
 import com.bleural.croissant.data.Prompt
@@ -100,7 +104,9 @@ internal fun chatLabel(core: Core, id: String): String =
 internal fun BenchScore.words() = "$passed/$total"
 
 /**
- * Settings > ask: model (the chat model in use, from the C1's providers; a tap opens the picker,
+ * Settings > ask: hey muffin, the always-on wake word (its switch; "paused" and the battery while
+ * the battery rule holds it; switching it on under the line says to plug in, in a centred notice),
+ * then model (the chat model in use, from the C1's providers; a tap opens the picker,
  * which says so when they list none), prompts (the one it gets: its score is on the prompts page),
  * test, providers, on a phone; then, 24 under, the speech, pictures and transform models (pick,
  * 2026-10-16), each the Mac's own or one of the C1's providers'. One with nothing to pick from is
@@ -116,47 +122,64 @@ internal fun AskSettingsPage(core: Core, nav: NavState) {
     val lists = slots.map { core.modelList(it.slot) }
     // Lazy item 0 is the 8 px over the rows, so row i is item i + 1.
     val rows = rememberRows(ASK_ROWS + slots.size, nav::pop, itemOf = { it + 1 }, topOf = { if (it == 0) 0 else it + 1 })
-    PageTop("ask", r) {
-        ShelfList(rows, r) {
-            item { Spacer(Modifier.height(8.px)) }
-            item {
-                ShelfRow("model", r, focused = rows.focus == 0, glyph = Glyphs.Chat, value = entry?.let { chatLabel(core, it) },
-                    chevron = true, onClick = { rows.focus = 0; nav.push(Screen.ModelPick(ModelSlot.Chat)) })
-            }
-            item {
-                ShelfRow("prompts", r, focused = rows.focus == 1, glyph = Glyphs.Text, value = prompt, chevron = true,
-                    onClick = { rows.focus = 1; nav.push(Screen.Prompts) })
-            }
-            item {
-                ShelfRow("test", r, focused = rows.focus == 2, glyph = Glyphs.Play, chevron = true,
-                    onClick = { rows.focus = 2; nav.push(Screen.ModelTest) })
-            }
-            item {
-                ShelfRow("providers", r, focused = rows.focus == 3, glyph = Glyphs.Cloud, chevron = true,
-                    onClick = { rows.focus = 3; nav.push(Screen.Providers) })
-            }
-            item {
-                ShelfRow("on a phone", r, focused = rows.focus == 4, glyph = Glyphs.Phone, chevron = true,
-                    onClick = { rows.focus = 4; nav.push(Screen.OnPhone()) })
-            }
-            items(slots.size) { i ->
-                val (slot, word, glyph) = slots[i]
-                val on = lists[i].entries.isNotEmpty()
-                Column {
-                    if (i == 0) Spacer(Modifier.height(SETTINGS_GAP))
-                    ShelfRow(
-                        word, r, focused = rows.focus == ASK_ROWS + i, glyph = glyph, value = lists[i].resolve(core.modelPicks[slot])?.label,
-                        chevron = on, dim = !on, onClick = { rows.focus = ASK_ROWS + i; if (on) nav.push(Screen.ModelPick(slot)) },
-                    )
+    val wake by core.wake.collectAsState()
+    var refused by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxSize()) {
+        PageTop("ask", r) {
+            ShelfList(rows, r) {
+                item { Spacer(Modifier.height(8.px)) }
+                item {
+                    val paused = wake.state == WakeStatus.State.Paused
+                    ShelfRow("hey muffin", r, focused = rows.focus == 0, glyph = Glyphs.Ear,
+                        value = if (paused) "paused, ${wake.percent}%" else null,
+                        trailing = { Toggle(core.wakeWord, r) },
+                        onClick = {
+                            rows.focus = 0
+                            val on = !core.wakeWord
+                            if (core.saveWakeWord(on)) Cues.play(if (on) Sound.SwitchOn else Sound.SwitchOff)
+                            else { refused = true; Cues.play(Sound.SheetIn) }
+                        })
                 }
+                item {
+                    ShelfRow("model", r, focused = rows.focus == 1, glyph = Glyphs.Chat, value = entry?.let { chatLabel(core, it) },
+                        chevron = true, onClick = { rows.focus = 1; nav.push(Screen.ModelPick(ModelSlot.Chat)) })
+                }
+                item {
+                    ShelfRow("prompts", r, focused = rows.focus == 2, glyph = Glyphs.Text, value = prompt, chevron = true,
+                        onClick = { rows.focus = 2; nav.push(Screen.Prompts) })
+                }
+                item {
+                    ShelfRow("test", r, focused = rows.focus == 3, glyph = Glyphs.Play, chevron = true,
+                        onClick = { rows.focus = 3; nav.push(Screen.ModelTest) })
+                }
+                item {
+                    ShelfRow("providers", r, focused = rows.focus == 4, glyph = Glyphs.Cloud, chevron = true,
+                        onClick = { rows.focus = 4; nav.push(Screen.Providers) })
+                }
+                item {
+                    ShelfRow("on a phone", r, focused = rows.focus == 5, glyph = Glyphs.Phone, chevron = true,
+                        onClick = { rows.focus = 5; nav.push(Screen.OnPhone()) })
+                }
+                items(slots.size) { i ->
+                    val (slot, word, glyph) = slots[i]
+                    val on = lists[i].entries.isNotEmpty()
+                    Column {
+                        if (i == 0) Spacer(Modifier.height(SETTINGS_GAP))
+                        ShelfRow(
+                            word, r, focused = rows.focus == ASK_ROWS + i, glyph = glyph, value = lists[i].resolve(core.modelPicks[slot])?.label,
+                            chevron = on, dim = !on, onClick = { rows.focus = ASK_ROWS + i; if (on) nav.push(Screen.ModelPick(slot)) },
+                        )
+                    }
+                }
+                item { Spacer(Modifier.height(24.px)) }
             }
-            item { Spacer(Modifier.height(24.px)) }
         }
+        if (refused) Notice(r, "plug it in or charge it to ${WakeConfig.BATTERY_MIN}%") { refused = false; Cues.play(Sound.SheetDismiss) }
     }
 }
 
-/** Settings > ask's rows over the model picks: model, prompts, test, providers, on a phone. */
-private const val ASK_ROWS = 5
+/** Settings > ask's rows over the model picks: hey muffin, model, prompts, test, providers, on a phone. */
+private const val ASK_ROWS = 6
 
 /**
  * Who a page is for, in sub on the first label's line (y 98), its rows 32 under it (y 130):

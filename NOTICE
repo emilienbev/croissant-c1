@@ -48,6 +48,8 @@ android/app/src/main/assets/lucide/
   Lucide's icons (https://lucide.dev), release 1.57.0, as path data written by
   scripts/lucide.py: the glyphs an Atelier app may name. ISC, with the parts that came
   from Feather by Cole Bemis under MIT. Licence: android/app/src/main/assets/lucide/LICENSE.
+  The ear glyph in android/app/src/main/java/com/bleural/croissant/ui/Icons.kt (Glyphs.Ear)
+  is Lucide's "ear", under the same licence.
 
 android/gradle/wrapper/, android/gradlew, android/gradlew.bat
   The Gradle wrapper, Apache-2.0.

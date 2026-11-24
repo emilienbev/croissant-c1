@@ -757,6 +757,25 @@ internal fun SheetWord(word: String, colour: Color, focused: Boolean, onClick: (
     }
 }
 
+/**
+ * A notice over the page: [line] centred in the middle, Medium ink, and one `ok` under it,
+ * focused. A tap on `ok` or the scrim, or a press of the wheel's word, closes it. For what
+ * the page cannot do and must say (the wake word under 20%).
+ */
+@Composable
+internal fun Notice(r: Ramp, line: String, onOk: () -> Unit) {
+    WheelTarget { true }
+    Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().background(r.ground.copy(alpha = SCRIM)).tappable(onOk))
+        Column(Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(line, style = BeamType.BodyMedium, color = r.ink, textAlign = TextAlign.Center,
+                modifier = Modifier.padding(start = 24.px, end = 24.px))
+            Box(Modifier.height(16.px))
+            SheetWord("ok", r.hue, focused = true, onOk)
+        }
+    }
+}
+
 // ---- text and prints --------------------------------------------------------------------
 
 /**

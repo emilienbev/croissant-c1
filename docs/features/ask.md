@@ -8,6 +8,7 @@
 A chat model on the side button. It answers in text and can do things on the C1 for you.
 
 - Hold the side button anywhere and talk. The croissant listens while you hold and answers when you let go.
+- Or say "hey muffin" and your question in one breath, like "hey muffin, start a pasta timer", from any screen, even with the screen off. Switch it on in Settings > ask. It listens at 20% battery or more, or while charging, and stops listening by itself under that.
 - Your words sit on the right in orange, the answer under them in white. The wheel scrolls back.
 - Hold again to follow up. The plus key starts a new chat.
 - The history key lists past chats by day. Tap one to carry on, or press and hold to pick some and delete them.
