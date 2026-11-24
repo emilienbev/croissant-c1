@@ -5,10 +5,10 @@ object WakeConfig {
     /** The bundled model, in assets. */
     const val MODEL_ASSET = "wake/hey-muffin.tflite"
     /**
-     * The model's cutoff. For hey-muffin v2, 0.8 is about 0.4 false wakes an hour on the
-     * training's party-noise check, and caught most phrasings in testing on the R1.
+     * The model's cutoff. For hey-muffin v3, 0.98 is about 0.2 false wakes an hour on the
+     * training's party-noise check, and caught more phrasings and distances than v2 did at 0.8.
      */
-    const val CUTOFF = 0.8f
+    const val CUTOFF = 0.98f
     /** After a pause, how long the listener ignores the model while its memory of before fades. */
     const val RESTART_DEAF_MS = 1000
     /** Battery percentage it needs when not charging. */
