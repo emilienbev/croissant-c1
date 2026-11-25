@@ -1,6 +1,6 @@
 [project]
 name = "croissant"
-version = "0.1.0"
+version = "0.1.1"
 description = "Put Croissant on a Rabbit R1 whose bootloader rabbit has allowed to unlock"
 requires-python = ">=3.12"
 dependencies = [
